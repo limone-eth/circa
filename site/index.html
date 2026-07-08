@@ -41,6 +41,7 @@
     min-height: 100dvh;
     display: grid;
     place-items: center;
+    place-content: center;
     overflow-x: clip;
     transition: color 2.5s ease;
     background: linear-gradient(to bottom, var(--sky-top), var(--sky-mid) 55%, var(--sky-bot));
@@ -61,6 +62,7 @@
     padding: 40px 28px 32px;
     margin: 24px 16px;
     background: var(--card);
+    margin-bottom: 0;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-radius: 14px;
@@ -223,14 +225,12 @@
 
   footer {
     display: flex;
-    gap: 12px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid var(--hair);
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
   }
   footer a { color: var(--faint); text-decoration: none; font-size: 12px; transition: color 2.5s ease; }
   footer a:hover { color: var(--muted); }
-  footer .right { margin-left: auto; color: var(--faint); font-size: 12px; transition: color 2.5s ease; }
 
   /* staggered entrance — opacity/transform only, no layout shift */
   .in { opacity: 0; transform: translateY(6px); animation: enter 600ms cubic-bezier(0.2, 0, 0, 1) forwards; }
@@ -303,11 +303,12 @@
        nothing to remember, nothing to schedule.</p>
   </details>
 
-  <footer class="in">
-    <a href="https://github.com/limone-eth/circa">repo</a>
-    <a href="https://github.com/limone-eth/circa/blob/main/LICENSE">mit</a>
-  </footer>
 </main>
+
+<footer class="in">
+  <a href="https://github.com/limone-eth/circa">repo</a>
+  <a href="https://github.com/limone-eth/circa/blob/main/LICENSE">open source</a>
+</footer>
 
 <script>
 // The page does what the app does: it follows your sun.
