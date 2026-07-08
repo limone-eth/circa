@@ -1,11 +1,16 @@
 # Circa
 
-A calm macOS menu-bar app that warms and dims your screen with the sun — like
-f.lux / Iris, built natively in Swift with a Liquid Glass popover UI.
+A calm menu-bar / tray app for **macOS and Windows** that warms and dims your
+screen with the sun — like f.lux / Iris, built natively (Swift on macOS with a
+Liquid Glass popover, C#/.NET on Windows).
 
 **[Download for Mac](https://github.com/limone-eth/circa/releases/latest/download/Circa.zip)**
 (macOS 14+, Apple silicon · ad-hoc signed, so first launch is right-click → Open)
-· MIT licensed · [circa.watch](https://circa.watch)
+
+**[Download for Windows](https://github.com/limone-eth/circa/releases/latest/download/Circa-windows-x64.zip)**
+(Windows 10/11 x64 · unsigned, so SmartScreen asks once: More info → Run anyway)
+
+MIT licensed · [circa.watch](https://circa.watch)
 
 ## What it does
 
@@ -22,10 +27,12 @@ f.lux / Iris, built natively in Swift with a Liquid Glass popover UI.
   ideal" button appears whenever you stray from the recommended curve.
 - **Flicker-free dimming (PWM-safe).** Pins the LED backlight at 100% — where
   it doesn't strobe — and produces your chosen brightness in the gamma table
-  instead. Brightness keys keep working; changes are absorbed into software
-  dim and the backlight is re-pinned.
+  instead, controlled by an in-app Brightness slider. Off by default; when on,
+  it suspends itself on battery ("only on power adapter", default on) because
+  a pinned backlight costs real runtime, and it parks macOS auto-brightness
+  while engaged, restoring it after.
 - **Pause** for an hour or until sunrise; **launch at login**; everything in a
-  small glass popover off the menu bar.
+  small glass popover off the menu bar (macOS) or tray panel (Windows).
 
 ## Build & install
 
@@ -38,9 +45,10 @@ for Location permission on first run (denying it just falls back to IP).
 
 ## Tips
 
-- Turn **off** System Settings → Displays → Night Shift so the two don't fight.
-- With flicker-free dimming on, also turn off "Automatically adjust brightness"
-  (the ambient light sensor and the watchdog otherwise negotiate forever).
+- Turn **off** Night Shift (macOS) / Night Light (Windows) so the two don't fight.
+- Flicker-free mode manages the ambient light sensor for you on macOS (off
+  while engaged, restored after); its Brightness slider replaces the keys
+  while the backlight is pinned.
 - Color changes happen in the display LUT, so screenshots and screen shares
   are unaffected (colleagues see normal colors).
 
