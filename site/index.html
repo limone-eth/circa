@@ -149,23 +149,48 @@
   /* fast color response while scrubbing, calm drift otherwise */
   body.scrub, body.scrub * { transition-duration: 200ms !important; }
 
-  .cta { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .cta { display: flex; align-items: stretch; gap: 8px; }
+  .cta input[type="email"] {
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--hair);
+    background: var(--card);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 200ms cubic-bezier(0.2, 0, 0, 1), background-color 2.5s ease, color 2.5s ease;
+  }
+  .cta input[type="email"]::placeholder { color: var(--faint); }
+  .cta input[type="email"]:focus { border-color: var(--dot); }
   .download {
     display: inline-flex;
     align-items: center;
     height: 34px;
     padding: 0 13px;
+    border: 0;
     border-radius: 6px;
     background: var(--btn-bg);
     color: var(--btn-fg);
     text-decoration: none;
+    font: inherit;
     font-size: 13px;
     font-weight: 500;
+    cursor: pointer;
     box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.08);
     transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), background-color 2.5s ease, color 2.5s ease;
   }
   .download:active { transform: scale(0.96); }
-  .cta .meta { color: var(--faint); transition: color 2.5s ease; }
+  .fine {
+    color: var(--faint);
+    font-size: 12px;
+    margin-top: 10px;
+    transition: color 2.5s ease;
+  }
+  .fine a { color: var(--muted); transition: color 2.5s ease; }
 
   details {
     border-top: 1px solid var(--hair);
@@ -256,9 +281,14 @@
     </div>
   </div>
 
-  <div class="cta in">
-    <a class="download" href="https://github.com/limone-eth/circa/releases/latest/download/Circa.zip">Download for Mac</a>
-    <span class="meta mono">free · open source</span>
+  <div class="in">
+    <form class="cta" action="https://YOURPUB.substack.com/subscribe" method="get" target="_blank">
+      <input type="email" name="email" placeholder="you@email.com" required
+             aria-label="email address" autocomplete="email">
+      <button class="download" type="submit">Get the link</button>
+    </form>
+    <p class="fine">joins the circa letter · the download link lands in your inbox ·
+      <a href="https://github.com/limone-eth/circa/releases/latest/download/Circa.zip">or download directly</a></p>
   </div>
 
   <details class="in">
