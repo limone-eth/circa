@@ -20,24 +20,20 @@
     --glow-c: rgba(255, 224, 168, 0.5);
     --glow-y: 20%;
     --ink: #2a221a;
-    --muted: #7a6f60;
+    --muted: #6c6152;
     --faint: #a89a86;
-    --hair: rgba(60, 40, 20, 0.10);
+    --hair: rgba(60, 40, 20, 0.14);
     --dot: #f59e0b;
-    --card: rgba(255, 252, 246, 0.62);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { -webkit-font-smoothing: antialiased; }
   body {
     font-family: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.65;
     letter-spacing: -0.01em;
     color: var(--ink);
     min-height: 100dvh;
-    display: grid;
-    place-items: center;
-    place-content: center;
     overflow-x: clip;
     transition: color 2.5s ease;
     background: linear-gradient(to bottom, var(--sky-top), var(--sky-mid) 55%, var(--sky-bot));
@@ -52,19 +48,12 @@
     background: radial-gradient(42rem 30rem at 50% var(--glow-y), var(--glow-c), transparent 65%);
   }
 
-  main {
-    width: 100%;
-    max-width: 560px;
-    padding: 40px 32px 36px;
-    margin: 24px 16px 0;
-    background: var(--card);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-radius: 14px;
-    box-shadow: 0 1px 2px rgba(30, 18, 8, 0.06), 0 12px 40px rgba(30, 18, 8, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 1px var(--hair);
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 40px 28px 48px;
   }
-  @media (max-width: 600px) { main { padding: 32px 20px 28px; margin: 12px 12px 0; } }
+  @media (max-width: 480px) { .page { padding: 28px 20px 40px; } }
 
   .mono {
     font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
@@ -73,55 +62,69 @@
     font-variant-numeric: tabular-nums;
   }
 
+  nav {
+    display: flex;
+    justify-content: flex-end;
+    gap: 18px;
+    margin-bottom: 40px;
+  }
+  nav a { color: var(--muted); text-decoration: none; font-size: 12.5px; transition: color 2.5s ease; }
+  nav a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
   header {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 28px;
+    margin-bottom: 26px;
   }
   .appicon {
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     outline: 1px solid var(--hair);
     outline-offset: -1px;
   }
   header .name { font-size: 17px; font-weight: 600; }
   header .name a { color: var(--ink); text-decoration: none; transition: color 2.5s ease; }
-  header .back {
-    margin-left: auto;
-    color: var(--faint);
-    text-decoration: none;
-    font-size: 12px;
-    transition: color 2.5s ease;
-  }
-  header .back:hover { color: var(--muted); }
-
-  h2 {
-    font-size: 12px;
-    font-weight: 500;
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-    border-top: 1px solid var(--hair);
-    padding-top: 18px;
-    margin: 30px 0 10px;
-    transition: color 2.5s ease;
-  }
-  section:first-of-type h2 { border-top: 0; padding-top: 0; margin-top: 0; }
 
   p {
     color: var(--muted);
-    font-size: 13.5px;
-    margin-bottom: 10px;
+    font-size: 14px;
+    margin-bottom: 14px;
     text-wrap: pretty;
+    max-width: 56ch;
     transition: color 2.5s ease;
   }
   p strong { color: var(--ink); font-weight: 500; transition: color 2.5s ease; }
   a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--hair); text-underline-offset: 3px; transition: color 2.5s ease; }
   a:hover { text-decoration-color: var(--dot); }
 
-  ul.papers { list-style: none; margin-bottom: 10px; }
+  .lede { margin-bottom: 34px; }
+  .lede p:first-child { color: var(--ink); font-weight: 500; }
+
+  details { border-top: 1px solid var(--hair); }
+  details:last-of-type { border-bottom: 1px solid var(--hair); }
+  summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    transition: color 2.5s ease;
+  }
+  summary:hover { color: var(--ink); }
+  summary::-webkit-details-marker { display: none; }
+  summary .tog { min-width: 1ch; color: var(--faint); transition: color 2.5s ease; }
+  summary .tog::before { content: "+"; }
+  details[open] summary .tog::before { content: "−"; }
+  details .body { padding: 2px 0 16px 22px; }
+  @media (max-width: 480px) { details .body { padding-left: 0; } }
+
+  ul.papers { list-style: none; margin-bottom: 12px; max-width: 56ch; }
   ul.papers li {
     padding: 9px 0;
     border-bottom: 1px solid var(--hair);
@@ -134,9 +137,8 @@
 
   footer {
     display: flex;
-    justify-content: center;
     gap: 16px;
-    margin: 12px 0 24px;
+    margin-top: 44px;
   }
   footer a { color: var(--faint); text-decoration: none; font-size: 12px; transition: color 2.5s ease; }
   footer a:hover { color: var(--muted); }
@@ -144,15 +146,20 @@
 </head>
 <body>
 
-<main>
+<div class="page">
+
+  <nav>
+    <a href="/">home</a>
+    <a href="https://github.com/limone-eth/circa">repo</a>
+  </nav>
+
   <header>
-    <img class="appicon" src="icon.png" alt="" width="28" height="28">
+    <img class="appicon" src="icon.png" alt="" width="30" height="30">
     <span class="name"><a href="/">circa</a></span>
-    <a class="back" href="/">← back</a>
   </header>
 
-  <section>
-    <h2>why follow the sun</h2>
+  <div class="lede">
+    <p>why follow the sun?</p>
     <p><strong>your body clock is set by light.</strong> a receptor in your retina
       called melanopsin, tuned to blue-green light around 480 nm, tells your brain
       what time it is. bright, blue-rich light during the day keeps you alert and
@@ -161,105 +168,117 @@
     <p>screens are the brightest, bluest thing most of us look at after sunset,
       and they are calibrated to 6500 K, bluer than noon daylight. circa removes
       that evening signal in the two ways the science says matter: it <strong>warms
-      the color</strong> (less melanopic stimulus) and it <strong>lowers the light</strong>
-      (suppression follows intensity, not just color). and it deliberately leaves
-      your days untouched, because bright days make your clock more resilient to
-      evening light.</p>
-    <p>a filter is not darkness: the last stretch before bed still belongs to
-      dim rooms and closed lids. circa just stops your screen from arguing with
-      your biology in the hours before that.</p>
-  </section>
+      the color</strong>, less melanopic stimulus, and it <strong>lowers the
+      light</strong>, because suppression follows intensity, not just color. and
+      it deliberately leaves your days untouched: bright days make your clock
+      more resilient to evening light.</p>
+    <p>a filter is not darkness. the last stretch before bed still belongs to dim
+      rooms and closed lids. circa just stops your screen from arguing with your
+      biology in the hours before that.</p>
+  </div>
 
-  <section>
-    <h2>the research</h2>
-    <p>the short version, paper by paper:</p>
-    <ul class="papers">
-      <li>evening room light suppresses melatonin in nearly everyone, before bed, at ordinary indoor levels.
-        <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/21193540/">Gooley et al., J Clin Endocrinol Metab, 2011</a></span></li>
-      <li>the circadian system is most sensitive to short-wavelength (blue) light.
-        <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/12970330/">Lockley, Brainard, Czeisler, 2003</a></span></li>
-      <li>melatonin suppression follows a dose-response with light intensity, which is why circa dims at night instead of only tinting.
-        <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/10922269/">Zeitzer et al., J Physiol, 2000</a></span></li>
-      <li>your recent light history matters: brighter days make you less sensitive to light at night.
-        <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/21224217/">Chang, Scheer, Czeisler, J Physiol, 2011</a></span></li>
-      <li>reading a light-emitting device before bed delays melatonin, sleep, and next-morning alertness compared with a printed book.
-        <span class="src"><a href="https://www.pnas.org/doi/10.1073/pnas.1418490112">Chang et al., PNAS, 2015</a></span></li>
-      <li>the american medical association recommends minimizing light at night, including from electronic media.
-        <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/23034687/">AMA Council on Science and Public Health, 2012</a></span></li>
-    </ul>
-    <p>the f.lux team maintains a longer, excellent
-      <a href="https://justgetflux.com/research.html">research bibliography</a>
-      that circa gladly stands on.</p>
-  </section>
+  <details>
+    <summary><span class="tog"></span>the research</summary>
+    <div class="body">
+      <ul class="papers">
+        <li>evening room light suppresses melatonin in nearly everyone, before bed, at ordinary indoor levels.
+          <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/21193540/">Gooley et al., J Clin Endocrinol Metab, 2011</a></span></li>
+        <li>the circadian system is most sensitive to short-wavelength (blue) light.
+          <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/12970330/">Lockley, Brainard, Czeisler, 2003</a></span></li>
+        <li>melatonin suppression follows a dose-response with light intensity, which is why circa dims at night instead of only tinting.
+          <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/10922269/">Zeitzer et al., J Physiol, 2000</a></span></li>
+        <li>your recent light history matters: brighter days make you less sensitive to light at night.
+          <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/21224217/">Chang, Scheer, Czeisler, J Physiol, 2011</a></span></li>
+        <li>reading a light-emitting device before bed delays melatonin, sleep, and next-morning alertness compared with a printed book.
+          <span class="src"><a href="https://www.pnas.org/doi/10.1073/pnas.1418490112">Chang et al., PNAS, 2015</a></span></li>
+        <li>the american medical association recommends minimizing light at night, including from electronic media.
+          <span class="src"><a href="https://pubmed.ncbi.nlm.nih.gov/23034687/">AMA Council on Science and Public Health, 2012</a></span></li>
+      </ul>
+      <p>the f.lux team maintains a longer, excellent
+        <a href="https://justgetflux.com/research.html">research bibliography</a>
+        that circa gladly stands on.</p>
+    </div>
+  </details>
 
-  <section>
-    <h2>isn't this built into my os?</h2>
-    <p><strong>partly.</strong> night shift on mac, night light on windows: every
-      major os ships the color half of this idea, and that is genuinely good
-      news, it means the science went mainstream. but the built-ins do one
-      intervention out of four.</p>
-    <p>they tint on a schedule, usually gently, and stop there. they never
-      <strong>dim</strong>, even though melatonin suppression follows light
-      intensity as much as color. they flip at sunset with a quick fade instead
-      of following the sun's real descent. they can't go near candlelight
-      depth. and none of them touch <strong>flicker</strong>: no pwm-safe
-      backlight pinning, no dimming below the hardware minimum.</p>
-    <p>circa covers all four, shows you the live solar data it's acting on, and
-      is open source. one note: run only one of these at a time. two systems
-      steering the same display fight each other, so turn night shift or night
-      light off when circa is on.</p>
-  </section>
+  <details>
+    <summary><span class="tog"></span>isn't this built into my os?</summary>
+    <div class="body">
+      <p><strong>partly.</strong> night shift on mac, night light on windows: every
+        major os ships the color half of this idea, and that is genuinely good
+        news, it means the science went mainstream. but the built-ins do one
+        intervention out of four.</p>
+      <p>they tint on a schedule, usually gently, and stop there. they never
+        <strong>dim</strong>, even though melatonin suppression follows light
+        intensity as much as color. they flip at sunset with a quick fade instead
+        of following the sun's real descent. they can't go near candlelight
+        depth. and none of them touch <strong>flicker</strong>: no pwm-safe
+        backlight pinning, no dimming below the hardware minimum.</p>
+      <p>circa covers all four, shows you the live solar data it's acting on, and
+        is open source. one note: run only one of these at a time. two systems
+        steering the same display fight each other, so turn night shift or night
+        light off when circa is on.</p>
+    </div>
+  </details>
 
-  <section>
-    <h2>how circa is different from f.lux</h2>
-    <p><strong>f.lux is the fifteen-year veteran of this idea</strong>, and it is
-      genuinely good: deep options, per-app exclusions, presets, hotkeys, and
-      real color-science pedigree. it is also closed source, and its interface
-      shows its age.</p>
-    <p>circa is what you get rebuilding the idea in 2026: <strong>open source</strong>
-      (a small, readable codebase), a design that feels native today, and
-      opinionated defaults instead of a settings panel. the curve is tied to the
-      sun's actual elevation through civil twilight, night dimming rides the same
-      curve automatically, and flicker-free dimming is built in rather than left
-      to a separate paid app. if you want granular control, f.lux remains the
-      right tool. if you want it calm and automatic, that is circa.</p>
-  </section>
+  <details>
+    <summary><span class="tog"></span>how circa is different from f.lux</summary>
+    <div class="body">
+      <p><strong>f.lux is the fifteen-year veteran of this idea</strong>, and it is
+        genuinely good: deep options, per-app exclusions, presets, hotkeys, and
+        real color-science pedigree. it is also closed source, and its interface
+        shows its age.</p>
+      <p>circa is what you get rebuilding the idea in 2026: <strong>open source</strong>
+        with a small, readable codebase, a design that feels native today, and
+        opinionated defaults instead of a settings panel. the curve is tied to the
+        sun's actual elevation through civil twilight, night dimming rides the same
+        curve automatically, and flicker-free dimming is built in rather than left
+        to a separate paid app. if you want granular control, f.lux remains the
+        right tool. if you want it calm and automatic, that is circa.</p>
+    </div>
+  </details>
 
-  <section>
-    <h2>how circa is different from iris</h2>
-    <p><strong>iris is the feature-maximal, paid option</strong>: dozens of modes,
-      per-app rules, and, to its credit, the pwm flicker protection idea that
-      circa also implements. it costs money and packs a dashboard's worth of
-      switches.</p>
-    <p>circa takes the two interventions that carry the evidence, sun-synced
-      color with night dimming and pwm-safe backlight pinning, and ships them
-      free, open source, and battery-aware: flicker-free mode suspends itself on
-      battery because a pinned backlight costs real runtime, something worth
-      being honest about.</p>
-  </section>
+  <details>
+    <summary><span class="tog"></span>how circa is different from iris</summary>
+    <div class="body">
+      <p><strong>iris is the feature-maximal, paid option</strong>: dozens of modes,
+        per-app rules, and, to its credit, the pwm flicker protection idea that
+        circa also implements. it costs money and packs a dashboard's worth of
+        switches.</p>
+      <p>circa takes the two interventions that carry the evidence, sun-synced
+        color with night dimming and pwm-safe backlight pinning, and ships them
+        free, open source, and battery-aware: flicker-free mode suspends itself on
+        battery because a pinned backlight costs real runtime, something worth
+        being honest about.</p>
+    </div>
+  </details>
 
-  <section>
-    <h2>what circa actually does</h2>
-    <p>every five seconds it computes the sun's elevation over your location
-      (pure astronomy, no weather api) and blends your screen between your day
-      and night color temperatures across civil twilight, +6° to −6°. changes
-      apply through the display's gamma table, so screenshots and screen shares
-      stay normal for everyone else. location comes from the system or your ip,
-      rounded coarse; nothing else leaves your machine. free, for
-      <a href="https://github.com/limone-eth/circa/releases/latest/download/Circa.zip">mac</a> and
-      <a href="https://github.com/limone-eth/circa/releases/latest/download/Circa-windows-x64.zip">windows</a>,
-      <a href="https://github.com/limone-eth/circa">mit licensed</a>.</p>
-  </section>
-</main>
+  <details>
+    <summary><span class="tog"></span>what circa actually does</summary>
+    <div class="body">
+      <p>every five seconds it computes the sun's elevation over your location
+        (pure astronomy, no weather api) and blends your screen between your day
+        and night color temperatures across civil twilight, +6° to −6°. changes
+        apply through the display's gamma table, so screenshots and screen shares
+        stay normal for everyone else. location comes from the system or your ip,
+        rounded coarse; nothing else leaves your machine. free, for
+        <a href="https://github.com/limone-eth/circa/releases/latest/download/Circa.zip">mac</a> and
+        <a href="https://github.com/limone-eth/circa/releases/latest/download/Circa-windows-x64.zip">windows</a>,
+        <a href="https://github.com/limone-eth/circa">mit licensed</a>.</p>
+    </div>
+  </details>
 
-<footer>
-  <a href="/">home</a>
-  <a href="https://github.com/limone-eth/circa">repo</a>
-  <a href="https://github.com/limone-eth/circa/blob/main/LICENSE">open source</a>
-</footer>
+  <footer>
+    <a href="/">home</a>
+    <a href="https://github.com/limone-eth/circa">repo</a>
+    <a href="https://github.com/limone-eth/circa/blob/main/LICENSE">open source</a>
+  </footer>
+
+</div>
 
 <script>
-// same sun-driven theme as the homepage, theme-only (no data rows here)
+// same sun-driven theme as the homepage, theme-only. ink contrast is
+// smoothstepped so text spends less time in low-contrast mid-transition
+// (there is no frosted card behind it on this page).
 function solarElevation(date, lat, lon) {
   const rad = Math.PI / 180;
   const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
@@ -289,10 +308,10 @@ const SKY = [
   [ 90, [224, 237, 245], [246, 240, 228], [242, 228, 205], 0.30],
 ];
 const INK = {
-  day:   { ink: [42, 34, 26],    muted: [122, 111, 96],  faint: [168, 154, 134],
-           card: [255, 252, 246, 0.62], hair: 'rgba(60, 40, 20, 0.10)' },
-  night: { ink: [240, 224, 195], muted: [178, 154, 124], faint: [128, 110, 90],
-           card: [28, 20, 14, 0.55],    hair: 'rgba(255, 235, 200, 0.10)' }
+  day:   { ink: [42, 34, 26],    muted: [108, 97, 82],   faint: [168, 154, 134],
+           hair: 'rgba(60, 40, 20, 0.14)' },
+  night: { ink: [240, 224, 195], muted: [186, 162, 130], faint: [128, 110, 90],
+           hair: 'rgba(255, 235, 200, 0.14)' }
 };
 const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const rgb = c => `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
@@ -312,6 +331,8 @@ function apply() {
   const { lat, lon } = coords || tzEstimate();
   const elev = solarElevation(new Date(), lat, lon);
   const t = 1 - dayBlend(elev);
+  // text switches decisively between its day and night states
+  const tc = t * t * (3 - 2 * t);
   const s = sky(elev);
   const r = document.documentElement.style;
   r.setProperty('--sky-top', rgb(s.top));
@@ -320,12 +341,10 @@ function apply() {
   r.setProperty('--glow-y', Math.max(4, Math.min(108, 86 - elev * 0.92)) + '%');
   r.setProperty('--glow-c', `rgba(255, ${Math.round(214 - t * 60)}, ${Math.round(160 - t * 70)}, ${s.glow.toFixed(2)})`);
   const d = INK.day, n = INK.night;
-  r.setProperty('--ink', rgb(lerp(d.ink, n.ink, t)));
-  r.setProperty('--muted', rgb(lerp(d.muted, n.muted, t)));
-  r.setProperty('--faint', rgb(lerp(d.faint, n.faint, t)));
-  const card = lerp(d.card, n.card, t);
-  r.setProperty('--card', `rgba(${Math.round(card[0])}, ${Math.round(card[1])}, ${Math.round(card[2])}, ${card[3].toFixed(2)})`);
-  r.setProperty('--hair', t > 0.5 ? n.hair : d.hair);
+  r.setProperty('--ink', rgb(lerp(d.ink, n.ink, tc)));
+  r.setProperty('--muted', rgb(lerp(d.muted, n.muted, tc)));
+  r.setProperty('--faint', rgb(lerp(d.faint, n.faint, tc)));
+  r.setProperty('--hair', tc > 0.5 ? n.hair : d.hair);
 }
 apply();
 fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) })

@@ -194,22 +194,6 @@
   }
   .fine a { color: var(--muted); transition: color 2.5s ease; }
 
-  .aboutlink {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 16px 0 6px;
-    margin-top: 28px;
-    border-top: 1px solid var(--hair);
-    color: var(--muted);
-    text-decoration: none;
-    transition: color 2.5s ease;
-  }
-  .aboutlink:hover { color: var(--ink); }
-  .aboutlink .arrow { color: var(--faint); transition: color 2.5s ease, transform 120ms cubic-bezier(0.2, 0, 0, 1); }
-  .aboutlink:hover .arrow { transform: translateX(2px); color: var(--dot); }
-
   footer {
     display: flex;
     justify-content: center;
@@ -277,14 +261,10 @@
     <p class="fine">download link lands in your inbox</p>
   </div>
 
-  <a class="aboutlink in" href="/about">
-    <span class="mono">why follow the sun? the science, and how circa compares</span>
-    <span class="mono arrow">→</span>
-  </a>
-
 </main>
 
 <footer class="in">
+  <a href="/about">about</a>
   <a href="https://github.com/limone-eth/circa">repo</a>
   <a href="https://github.com/limone-eth/circa/blob/main/LICENSE">open source</a>
 </footer>
