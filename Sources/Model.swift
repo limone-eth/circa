@@ -41,6 +41,16 @@ final class CircaModel: NSObject, ObservableObject {
             applyNow()
         }
     }
+    /// Perceived brightness in flicker-free mode (the backlight stays at
+    /// 100%; this scales the gamma table instead). The popover slider is the
+    /// only control for it: brightness keys are inert while the backlight is
+    /// pinned, so there must be an explicit, recoverable control.
+    @Published var flickerBrightness: Double = Settings.flickerComp {
+        didSet {
+            Settings.flickerComp = max(0.2, min(1.0, flickerBrightness))
+            applyNow()
+        }
+    }
     @Published var launchAtLogin: Bool = (SMAppService.mainApp.status == .enabled) {
         didSet {
             do {
@@ -225,15 +235,13 @@ final class CircaModel: NSObject, ObservableObject {
     // MARK: - Flicker-free (PWM-safe) mode
 
     /// Pin the backlight at 100% (no PWM strobing) and fold the current
-    /// hardware brightness into a software dim so perceived brightness is
-    /// unchanged.
+    /// hardware brightness into the software brightness once, so perceived
+    /// brightness is unchanged at the moment of enabling.
     private func engageFlickerFree() {
         guard let id = Brightness.builtinDisplay(), let hw = Brightness.get(id) else { return }
         if hw < 0.995 {
-            Settings.flickerComp = max(0.15, Double(hw))
+            flickerBrightness = max(0.2, Double(hw))
             Brightness.set(id, 1.0)
-        } else if Settings.flickerComp == 1.0 {
-            Settings.flickerComp = 1.0
         }
     }
 
@@ -243,13 +251,18 @@ final class CircaModel: NSObject, ObservableObject {
             Brightness.set(id, Float(Settings.flickerComp))
         }
         Settings.flickerComp = 1.0
+        flickerBrightness = 1.0
     }
 
-    /// Brightness keys still work in flicker-free mode: any hardware change
-    /// is absorbed into the software dim and the backlight is re-pinned.
+    /// Keep the backlight pinned at 100% without absorbing the change into
+    /// software dim. The old absorb-and-repin approach ratcheted: the ambient
+    /// light sensor lowered the backlight, we folded that into software dim,
+    /// re-pinned, and the screen only ever got darker — brightness-up keys
+    /// are inert at a pinned backlight, so there was no way back. Now sensor
+    /// and key changes are simply overridden; the popover slider is the
+    /// single source of truth for brightness in this mode.
     private func flickerWatchdog() {
         guard let id = Brightness.builtinDisplay(), let hw = Brightness.get(id), hw < 0.985 else { return }
-        Settings.flickerComp = max(0.15, Settings.flickerComp * Double(hw))
         Brightness.set(id, 1.0)
     }
 }

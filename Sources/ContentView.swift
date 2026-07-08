@@ -85,7 +85,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Flicker-free dimming")
                     Text(model.flickerFreeAvailable
-                         ? "Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM)."
+                         ? "Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM). Use the slider below for brightness; the keys are overridden."
                          : "Not available for this display.")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -96,6 +96,16 @@ struct ContentView: View {
             .controlSize(.small)
             .disabled(!model.flickerFreeAvailable)
 
+            if model.flickerFree && model.flickerFreeAvailable {
+                SliderRow(title: "Brightness", systemImage: "sun.min",
+                          value: Binding(
+                              get: { model.flickerBrightness * 100 },
+                              set: { model.flickerBrightness = $0 / 100 }),
+                          range: 20...100, step: 1,
+                          tint: Color.yellow) { "\(Int($0)) %" }
+                    .transition(.opacity)
+            }
+
             Divider()
 
             Toggle(isOn: $model.launchAtLogin) {
@@ -104,6 +114,7 @@ struct ContentView: View {
             .toggleStyle(.switch)
             .controlSize(.small)
         }
+        .animation(.spring(duration: 0.25, bounce: 0), value: model.flickerFree)
     }
 
     // MARK: Pause
