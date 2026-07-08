@@ -12,6 +12,7 @@ public sealed class TrayContext : ApplicationContext
 
     public TrayContext()
     {
+        bool firstRun = !File.Exists(Settings.Path);
         _popover = new PopoverForm(_engine);
 
         _tray.Icon = LoadIcon();
@@ -40,6 +41,17 @@ public sealed class TrayContext : ApplicationContext
         SystemEvents.DisplaySettingsChanged += (_, _) => _engine.Tick(slew: false);
 
         _engine.Start();
+
+        if (firstRun)
+        {
+            // A tray app that opens nothing on first launch reads as broken.
+            _engine.Settings.Save();
+            TogglePopover();
+            _tray.BalloonTipTitle = "Circa is running";
+            _tray.BalloonTipText = "It lives here in the tray. Click the ring icon anytime. " +
+                                   "Your screen will warm automatically at sunset.";
+            _tray.ShowBalloonTip(6000);
+        }
     }
 
     private void TogglePopover()
