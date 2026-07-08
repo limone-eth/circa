@@ -5,7 +5,7 @@ f.lux / Iris, built natively in Swift with a Liquid Glass popover UI.
 
 **[Download for Mac](https://github.com/simonestaffa/lumen/releases/latest/download/Lumen.zip)**
 (macOS 14+, Apple silicon · ad-hoc signed, so first launch is right-click → Open)
-· MIT licensed · [lumen site](https://lumen-app.vercel.app)
+· MIT licensed · [lumen-nine-nu.vercel.app](https://lumen-nine-nu.vercel.app)
 
 ## What it does
 
