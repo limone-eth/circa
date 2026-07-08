@@ -52,10 +52,29 @@ struct ContentView: View {
             SliderRow(title: "Night", systemImage: "moon",
                       value: $model.nightTemp, range: 1900...4500, step: 50,
                       tint: .orange) { "\(Int($0)) K" }
-            SliderRow(title: "Dim", systemImage: "circle.lefthalf.filled",
+            SliderRow(title: "Night dim", systemImage: "circle.lefthalf.filled",
                       value: $model.dimPercent, range: 0...70, step: 1,
-                      tint: Color.secondary) { $0 < 1 ? "Off" : "\(Int($0)) %" }
+                      tint: Color.indigo) { $0 < 1 ? "Off" : "\(Int($0)) %" }
+
+            if model.isCustomized {
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.spring(duration: 0.3, bounce: 0)) {
+                            model.resetToRecommended()
+                        }
+                    } label: {
+                        Label("Reset to ideal", systemImage: "arrow.counterclockwise")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help("Back to the recommended day/night curve for this time of day")
+                }
+                .transition(.opacity)
+            }
         }
+        .animation(.spring(duration: 0.25, bounce: 0), value: model.isCustomized)
     }
 
     // MARK: Toggles
@@ -283,7 +302,8 @@ extension LumenModel {
     var statusLine: String {
         guard isActive else { return "Screen at system default" }
         var parts = ["\(Int((appliedKelvin / 50).rounded() * 50)) K"]
-        if dimPercent >= 1 { parts.append("dimmed \(Int(dimPercent)) %") }
+        let nightDim = Int((dimPercent * (1 - nightBlend)).rounded())
+        if nightDim >= 1 { parts.append("dimmed \(nightDim) %") }
         if flickerFree { parts.append("flicker-free") }
         return parts.joined(separator: " · ")
     }

@@ -56,6 +56,8 @@ final class LumenModel: NSObject, ObservableObject {
 
     @Published private(set) var phase: DayPhase = .day
     @Published private(set) var appliedKelvin: Double = 6500
+    /// 1 = full day, 0 = full night; drives both temperature and night dim.
+    @Published private(set) var nightBlend: Double = 1
     @Published private(set) var placeName: String = ""
     @Published private(set) var locationSource: String = ""
     @Published var pausedUntil: Date?
@@ -104,7 +106,8 @@ final class LumenModel: NSObject, ObservableObject {
         if flickerFree, let id = Brightness.builtinDisplay() {
             // Leave the backlight at the perceived brightness so quitting
             // doesn't blast the user with a full-brightness screen.
-            Brightness.set(id, Float(Settings.flickerComp * (1 - dimPercent / 100)))
+            let perceived = outputSuspended ? Settings.flickerComp : lastEffectiveDim
+            Brightness.set(id, Float(perceived))
         }
         gamma.restore()
     }
@@ -116,6 +119,27 @@ final class LumenModel: NSObject, ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             self?.tick(slew: false)
         }
+    }
+
+    // MARK: - Recommended values
+
+    static let recommendedDay = 6500.0
+    static let recommendedNight = 2300.0
+    static let recommendedDim = 25.0
+
+    var isCustomized: Bool {
+        dayTemp != Self.recommendedDay
+            || nightTemp != Self.recommendedNight
+            || dimPercent != Self.recommendedDim
+    }
+
+    /// Back to the recommended curve for this moment of the day.
+    func resetToRecommended() {
+        dayTemp = Self.recommendedDay
+        nightTemp = Self.recommendedNight
+        dimPercent = Self.recommendedDim
+        if pausedUntil != nil { pausedUntil = nil }
+        if !enabled { enabled = true } else { applyNow() }
     }
 
     // MARK: - Pause
@@ -165,6 +189,7 @@ final class LumenModel: NSObject, ObservableObject {
         // Smoothstep between full night (−6°) and full day (+6°) elevation.
         let x = max(0, min(1, (elevation + 6) / 12))
         let blend = x * x * (3 - 2 * x)
+        if nightBlend != blend { nightBlend = blend }
         let target = nightTemp + (dayTemp - nightTemp) * blend
 
         if slew {
@@ -177,12 +202,18 @@ final class LumenModel: NSObject, ObservableObject {
 
         if flickerFree { flickerWatchdog() }
 
-        gamma.apply(kelvin: appliedKelvin, dim: effectiveDim())
+        lastEffectiveDim = effectiveDim()
+        gamma.apply(kelvin: appliedKelvin, dim: lastEffectiveDim)
     }
 
+    private var lastEffectiveDim: Double = 1
+
+    /// Night dim fades in with the same solar blend as the temperature —
+    /// full daylight is never dimmed.
     private func effectiveDim() -> Double {
         let comp = flickerFree ? Settings.flickerComp : 1.0
-        return max(0.12, (1 - dimPercent / 100) * comp)
+        let nightDim = dimPercent * (1 - nightBlend)
+        return max(0.12, (1 - nightDim / 100) * comp)
     }
 
     private func suspendOutput() {

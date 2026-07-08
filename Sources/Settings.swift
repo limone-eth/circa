@@ -10,12 +10,13 @@ enum Settings {
         set { d.set(newValue, forKey: "dayTemp") }
     }
     static var nightTemp: Double {
-        get { d.object(forKey: "nightTemp") as? Double ?? 3400 }
+        get { d.object(forKey: "nightTemp") as? Double ?? 2300 }
         set { d.set(newValue, forKey: "nightTemp") }
     }
-    /// Extra software dimming chosen by the user, 0...70 (%).
+    /// Extra software dimming at night, 0...70 (%). Scaled by the same solar
+    /// blend as color temperature: no effect in daylight, full value at night.
     static var dimPercent: Double {
-        get { d.object(forKey: "dimPercent") as? Double ?? 0 }
+        get { d.object(forKey: "dimPercent") as? Double ?? 25 }
         set { d.set(newValue, forKey: "dimPercent") }
     }
     static var enabled: Bool {

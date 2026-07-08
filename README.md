@@ -11,7 +11,11 @@ f.lux / Iris, built natively in Swift with a Liquid Glass popover UI.
 - **Location aware.** Uses macOS Location Services; falls back to IP
   geolocation, then a cached fix, then a timezone estimate. Nothing leaves
   your Mac except the optional IP lookup.
-- **Extra dimming.** Software-dims below the hardware minimum for dark rooms.
+- **Night dim.** Software-dims below the hardware minimum, riding the same
+  solar curve as the color: zero effect in daylight, full strength (default
+  25%) at night. Defaults follow the circadian-hygiene playbook: untouched
+  6500 K days, deep 2300 K amber nights (~85% of blue removed). A "Reset to
+  ideal" button appears whenever you stray from the recommended curve.
 - **Flicker-free dimming (PWM-safe).** Pins the LED backlight at 100% — where
   it doesn't strobe — and produces your chosen brightness in the gamma table
   instead. Brightness keys keep working; changes are absorbed into software
