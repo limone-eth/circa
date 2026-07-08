@@ -182,7 +182,9 @@
     <div class="body">
       <p>every five seconds it computes the sun's elevation over your location
         (pure astronomy, no weather api) and blends your screen between your day
-        and night color temperatures across civil twilight, +6° to −6°. changes
+        and night color temperatures. the screen is always drifting with the sun,
+        a gentle slope from sunrise to peak to sunset, then the main dive across
+        civil twilight, +6° to −6°, into full night. changes
         apply through the display's gamma table, so screenshots and screen shares
         stay normal for everyone else. location comes from the system or your ip,
         rounded coarse; nothing else leaves your machine. free, for
@@ -295,9 +297,10 @@ function solarElevation(date, lat, lon) {
             Math.cos(lat * rad) * Math.cos(dec) * Math.cos(ha);
   return Math.asin(Math.max(-1, Math.min(1, s))) / rad;
 }
-function dayBlend(elev) {
-  const x = Math.max(0, Math.min(1, (elev + 6) / 12));
-  return x * x * (3 - 2 * x);
+function dayBlend(elev) { // 1 = full day, 0 = full night; twilight dive + gentle daylight slope
+  const smooth = v => { const x = Math.max(0, Math.min(1, v)); return x * x * (3 - 2 * x); };
+  if (elev <= 6) return 0.85 * smooth((elev + 6) / 12);
+  return 0.85 + 0.15 * smooth((elev - 6) / 54);
 }
 const SKY = [
   [-12, [21, 16, 19],    [25, 19, 16],    [30, 21, 15],    0.00],

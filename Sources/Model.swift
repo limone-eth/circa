@@ -218,9 +218,7 @@ final class CircaModel: NSObject, ObservableObject {
         }
         outputSuspended = false
 
-        // Smoothstep between full night (−6°) and full day (+6°) elevation.
-        let x = max(0, min(1, (elevation + 6) / 12))
-        let blend = x * x * (3 - 2 * x)
+        let blend = Self.solarBlend(elevation)
         if nightBlend != blend { nightBlend = blend }
         let target = nightTemp + (dayTemp - nightTemp) * blend
 
@@ -264,6 +262,21 @@ final class CircaModel: NSObject, ObservableObject {
     }
 
     private var lastEffectiveDim: Double = 1
+
+    /// The day's shape: civil twilight (+6°…−6°) carries the main transition,
+    /// and above it a gentle daylight slope keeps the screen drifting with the
+    /// sun from sunrise to peak to sunset — always moving, never a plateau.
+    /// 1 = full day (sun ≥ ~60°), 0 = full night (sun ≤ −6°).
+    static func solarBlend(_ elevation: Double) -> Double {
+        func smooth(_ v: Double) -> Double {
+            let x = max(0, min(1, v))
+            return x * x * (3 - 2 * x)
+        }
+        if elevation <= 6 {
+            return 0.85 * smooth((elevation + 6) / 12)
+        }
+        return 0.85 + 0.15 * smooth((elevation - 6) / 54)
+    }
 
     /// Night dim fades in with the same solar blend as the temperature —
     /// full daylight is never dimmed.

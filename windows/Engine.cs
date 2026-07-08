@@ -145,9 +145,7 @@ public sealed class Engine
         }
         _outputSuspended = false;
 
-        // Smoothstep across civil twilight (+6° … −6°).
-        double x = Math.Clamp((elevation + 6) / 12, 0, 1);
-        NightBlend = x * x * (3 - 2 * x);
+        NightBlend = SolarBlend(elevation);
         double target = Settings.NightTemp + (Settings.DayTemp - Settings.NightTemp) * NightBlend;
 
         if (slew)
@@ -184,6 +182,22 @@ public sealed class Engine
         _lastEffectiveDim = EffectiveDim();
         _gamma.Apply(AppliedKelvin, _lastEffectiveDim);
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// The day's shape: civil twilight (+6..-6) carries the main transition,
+    /// and above it a gentle daylight slope keeps the screen drifting with
+    /// the sun from sunrise to peak to sunset. 1 = full day, 0 = full night.
+    /// </summary>
+    private static double SolarBlend(double elevation)
+    {
+        static double Smooth(double v)
+        {
+            double x = Math.Clamp(v, 0, 1);
+            return x * x * (3 - 2 * x);
+        }
+        if (elevation <= 6) return 0.85 * Smooth((elevation + 6) / 12);
+        return 0.85 + 0.15 * Smooth((elevation - 6) / 54);
     }
 
     private double EffectiveDim()
