@@ -64,6 +64,9 @@ public sealed class TrayContext : ApplicationContext
         {
             string path = Path.Combine(AppContext.BaseDirectory, "circa.ico");
             if (File.Exists(path)) return new Icon(path);
+            // Single-file publish: fall back to the icon embedded in the exe.
+            var associated = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            if (associated != null) return associated;
         }
         catch { }
         return SystemIcons.Application;

@@ -26,7 +26,7 @@ jobs:
           -o publish
 
       - name: Zip
-        run: Compress-Archive -Path publish/Circa.exe, publish/circa.ico -DestinationPath Circa-windows-x64.zip
+        run: Compress-Archive -Path publish/Circa.exe -DestinationPath Circa-windows-x64.zip
 
       - uses: actions/upload-artifact@v4
         with:
