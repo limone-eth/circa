@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lumen — your screen, in sync with the sun</title>
+<meta name="description" content="a calm, open-source mac app that warms and dims your screen with the sun — and stops LED backlight flicker.">
+<link rel="icon" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="lumen — your screen, in sync with the sun">
+<meta property="og:description" content="a calm, open-source mac app that warms and dims your screen with the sun — and stops LED backlight flicker.">
+<meta property="og:image" content="https://lumen-app.vercel.app/icon.png">
+<meta name="twitter:card" content="summary">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1c1c;
+    --muted: #6e6e6e;
+    --faint: #9a9a9a;
+    --btn-bg: #171717;
+    --btn-fg: #ffffff;
+    --hair: rgba(0, 0, 0, 0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: ui-sans-serif, -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    transition: background-color 2.5s ease, color 2.5s ease;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+  }
+  nav {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 2.5s ease;
+  }
+  nav a:hover { text-decoration: underline; }
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+  }
+  .icon {
+    width: 88px;
+    height: 88px;
+    border-radius: 22px;
+    outline: 1px solid var(--hair);
+    outline-offset: -1px;
+    margin-bottom: 2rem;
+  }
+  h1 {
+    font-size: 1.65rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-bottom: 1.2rem;
+    text-wrap: balance;
+  }
+  p {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    margin-bottom: 1.2rem;
+    text-wrap: pretty;
+  }
+  .muted { color: var(--muted); transition: color 2.5s ease; }
+  #sunline {
+    font-size: 0.92rem;
+    color: var(--muted);
+    margin: 2rem 0 0.8rem;
+    transition: color 2.5s ease;
+  }
+  .download {
+    display: inline-block;
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0.8rem 1.6rem;
+    border-radius: 12px;
+    margin-top: 0.4rem;
+    transition: background-color 2.5s ease, color 2.5s ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .download:active { transform: scale(0.96); }
+  .note {
+    font-size: 0.8rem;
+    color: var(--faint);
+    margin-top: 1rem;
+    transition: color 2.5s ease;
+  }
+  footer {
+    padding: 2rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--faint);
+    transition: color 2.5s ease;
+  }
+  footer a { color: inherit; }
+  @media (prefers-reduced-motion: reduce) {
+    body, nav a, .muted, #sunline, .download, .note, footer { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="https://github.com/simonestaffa/lumen">repo</a>
+</nav>
+
+<main>
+  <img class="icon" src="icon.png" alt="lumen app icon — a sun setting over a calm sea" width="88" height="88">
+
+  <h1>hi, this is lumen.</h1>
+  <p>a mac app that keeps your screen in sync with the sun.</p>
+  <p class="muted">full daylight color while the sun is up. then, as it sets wherever you are,
+     your screen slowly warms to candlelight amber and gently dims — so evening
+     screen time stops fighting your sleep.</p>
+  <p class="muted">it can also stop LED backlight flicker (PWM) for tired eyes.</p>
+  <p>all in native swift. open-source. all local. free. enjoy.</p>
+
+  <p id="sunline">…</p>
+
+  <a class="download" href="https://github.com/simonestaffa/lumen/releases/latest/download/Lumen.zip">download for mac</a>
+  <p class="note">first launch: right-click the app → open (it's ad-hoc signed, macOS 14+, apple silicon)</p>
+</main>
+
+<footer>
+  <a href="https://github.com/simonestaffa/lumen/blob/main/LICENSE">mit licensed</a>
+  · made by <a href="https://github.com/simonestaffa">simone</a>
+</footer>
+
+<script>
+// This page does what the app does: it follows your sun.
+// Same solar-elevation math as the app (NOAA low-precision ephemeris),
+// location from IP (no permission prompt), timezone estimate as fallback.
+
+function solarElevation(date, lat, lon) {
+  const rad = Math.PI / 180;
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const d = jd - 2451545.0;
+  const g = ((357.529 + 0.98560028 * d) % 360) * rad;
+  const q = 280.459 + 0.98564736 * d;
+  const L = ((q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) % 360) * rad;
+  const e = (23.439 - 0.00000036 * d) * rad;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L));
+  const dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const gmst = 18.697374558 + 24.06570982441908 * d;
+  let ha = ((gmst % 24) * 15 + lon) * rad - ra;
+  while (ha > Math.PI) ha -= 2 * Math.PI;
+  while (ha < -Math.PI) ha += 2 * Math.PI;
+  const sinElev = Math.sin(lat * rad) * Math.sin(dec) +
+                  Math.cos(lat * rad) * Math.cos(dec) * Math.cos(ha);
+  return Math.asin(Math.max(-1, Math.min(1, sinElev))) / rad;
+}
+
+// blend: 1 = full day, 0 = full night, smoothstepped across civil twilight
+function dayBlend(elev) {
+  const x = Math.max(0, Math.min(1, (elev + 6) / 12));
+  return x * x * (3 - 2 * x);
+}
+
+const DAY = {
+  bg: [255, 255, 255], fg: [28, 28, 28], muted: [110, 110, 110],
+  faint: [154, 154, 154], btnBg: [23, 23, 23], btnFg: [255, 255, 255]
+};
+const NIGHT = {
+  bg: [22, 16, 12], fg: [240, 224, 195], muted: [172, 148, 120],
+  faint: [122, 104, 84], btnBg: [235, 172, 92], btnFg: [34, 22, 10]
+};
+
+function lerp(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)); }
+function css(c) { return `rgb(${c[0]}, ${c[1]}, ${c[2]})`; }
+
+let coords = null; // {lat, lon} once known
+
+function tzEstimate() {
+  // Longitude from UTC offset puts solar noon near clock noon.
+  return { lat: 40, lon: -new Date().getTimezoneOffset() / 60 * 15 };
+}
+
+function apply() {
+  const { lat, lon } = coords || tzEstimate();
+  const elev = solarElevation(new Date(), lat, lon);
+  const t = 1 - dayBlend(elev); // 0 day → 1 night
+  const root = document.documentElement.style;
+  root.setProperty('--bg', css(lerp(DAY.bg, NIGHT.bg, t)));
+  root.setProperty('--fg', css(lerp(DAY.fg, NIGHT.fg, t)));
+  root.setProperty('--muted', css(lerp(DAY.muted, NIGHT.muted, t)));
+  root.setProperty('--faint', css(lerp(DAY.faint, NIGHT.faint, t)));
+  root.setProperty('--btn-bg', css(lerp(DAY.btnBg, NIGHT.btnBg, t)));
+  root.setProperty('--btn-fg', css(lerp(DAY.btnFg, NIGHT.btnFg, t)));
+  root.setProperty('--hair', t > 0.5 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)');
+
+  const line = document.getElementById('sunline');
+  if (elev > 6) {
+    line.textContent = '☀️ the sun is up where you are, so this page is bright and neutral — come back after sunset and it will look the way lumen makes your screen feel.';
+  } else if (elev > -6) {
+    line.textContent = '🌅 it’s golden hour where you are — this page is warming and dimming right now, exactly like lumen is doing to your screen.';
+  } else {
+    line.textContent = '🌙 it’s night where you are — this page has gone warm and dim by itself. lumen does this to your whole screen.';
+  }
+}
+
+apply(); // instant paint from timezone estimate — no flash of wrong theme
+
+fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) })
+  .then(r => r.json())
+  .then(j => {
+    if (typeof j.latitude === 'number' && typeof j.longitude === 'number') {
+      coords = { lat: j.latitude, lon: j.longitude };
+      apply();
+    }
+  })
+  .catch(() => {}); // timezone estimate is already good enough
+
+setInterval(apply, 60000); // drift with the sun while the tab is open
+</script>
+
+</body>
+</html>
