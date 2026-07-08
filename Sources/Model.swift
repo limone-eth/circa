@@ -37,10 +37,32 @@ final class CircaModel: NSObject, ObservableObject {
     @Published var flickerFree: Bool = Settings.flickerFree {
         didSet {
             Settings.flickerFree = flickerFree
-            flickerFree ? engageFlickerFree() : disengageFlickerFree()
+            if flickerFree {
+                engageFlickerFree()
+            } else {
+                if !flickerSuspended { disengageFlickerFree() } else { Settings.flickerComp = 1.0; flickerBrightness = 1.0 }
+                flickerSuspended = false
+            }
             applyNow()
         }
     }
+    /// Suspend flicker-free on battery, where the pinned backlight costs
+    /// real runtime; hand brightness back to macOS until power returns.
+    @Published var flickerOnlyOnPower: Bool = Settings.flickerOnlyOnPower {
+        didSet { Settings.flickerOnlyOnPower = flickerOnlyOnPower; applyNow() }
+    }
+    /// True while flicker-free is configured on but paused because we're on
+    /// battery with flickerOnlyOnPower set.
+    @Published private(set) var flickerSuspended = false
+    /// Mirror of the macOS "Automatically adjust brightness" setting.
+    @Published var autoBrightness: Bool = Brightness.autoBrightnessEnabled() {
+        didSet {
+            guard !syncingAutoBrightness, autoBrightness != Brightness.autoBrightnessEnabled() else { return }
+            Brightness.setAutoBrightness(autoBrightness)
+        }
+    }
+    let autoBrightnessAvailable = Brightness.autoBrightnessSupported
+    private var syncingAutoBrightness = false
     /// Perceived brightness in flicker-free mode (the backlight stays at
     /// 100%; this scales the gamma table instead). The popover slider is the
     /// only control for it: brightness keys are inert while the backlight is
@@ -113,7 +135,7 @@ final class CircaModel: NSObject, ObservableObject {
 
     func shutdown() {
         timer?.invalidate()
-        if flickerFree, let id = Brightness.builtinDisplay() {
+        if flickerFree, !flickerSuspended, let id = Brightness.builtinDisplay() {
             // Leave the backlight at the perceived brightness so quitting
             // doesn't blast the user with a full-brightness screen.
             let perceived = outputSuspended ? Settings.flickerComp : lastEffectiveDim
@@ -210,7 +232,32 @@ final class CircaModel: NSObject, ObservableObject {
             appliedKelvin = target
         }
 
-        if flickerFree { flickerWatchdog() }
+        if flickerFree {
+            if flickerOnlyOnPower && Power.onBattery {
+                if !flickerSuspended {
+                    flickerSuspended = true
+                    // Hand the backlight back at the same perceived level.
+                    if let id = Brightness.builtinDisplay() {
+                        Brightness.set(id, Float(Settings.flickerComp))
+                    }
+                }
+            } else {
+                if flickerSuspended {
+                    flickerSuspended = false
+                    engageFlickerFree()
+                }
+                flickerWatchdog()
+            }
+        }
+
+        // Keep the auto-brightness mirror honest if it's changed in System
+        // Settings while we're running.
+        let systemALC = Brightness.autoBrightnessEnabled()
+        if systemALC != autoBrightness {
+            syncingAutoBrightness = true
+            autoBrightness = systemALC
+            syncingAutoBrightness = false
+        }
 
         lastEffectiveDim = effectiveDim()
         gamma.apply(kelvin: appliedKelvin, dim: lastEffectiveDim)
@@ -221,7 +268,7 @@ final class CircaModel: NSObject, ObservableObject {
     /// Night dim fades in with the same solar blend as the temperature —
     /// full daylight is never dimmed.
     private func effectiveDim() -> Double {
-        let comp = flickerFree ? Settings.flickerComp : 1.0
+        let comp = (flickerFree && !flickerSuspended) ? Settings.flickerComp : 1.0
         let nightDim = dimPercent * (1 - nightBlend)
         return max(0.12, (1 - nightDim / 100) * comp)
     }

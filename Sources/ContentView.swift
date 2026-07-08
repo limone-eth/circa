@@ -104,9 +104,40 @@ struct ContentView: View {
                           range: 20...100, step: 1,
                           tint: Color.yellow) { "\(Int($0)) %" }
                     .transition(.opacity)
+
+                Toggle(isOn: $model.flickerOnlyOnPower) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Only on power adapter")
+                        Text(model.flickerSuspended
+                             ? "Paused right now: on battery. Brightness is back with macOS until you plug in."
+                             : "The pinned backlight draws noticeably more energy, so on battery Circa hands brightness back to macOS.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .transition(.opacity)
             }
 
             Divider()
+
+            if model.autoBrightnessAvailable {
+                Toggle(isOn: $model.autoBrightness) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Auto-adjust brightness")
+                        Text("The macOS ambient light sensor. Overridden while flicker-free is pinning the backlight.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+
+                Divider()
+            }
 
             Toggle(isOn: $model.launchAtLogin) {
                 Text("Launch at login")

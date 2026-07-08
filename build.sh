@@ -16,7 +16,8 @@ swiftc -O -swift-version 5 \
     -framework SwiftUI \
     -framework CoreLocation \
     -framework CoreGraphics \
-    -framework ServiceManagement
+    -framework ServiceManagement \
+    -framework IOKit
 
 codesign --force --sign - "$APP"
 echo "Built $APP"

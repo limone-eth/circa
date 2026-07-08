@@ -27,6 +27,12 @@ enum Settings {
         get { d.object(forKey: "flickerFree") as? Bool ?? false }
         set { d.set(newValue, forKey: "flickerFree") }
     }
+    /// Suspend flicker-free on battery: the pinned 100% backlight draws
+    /// noticeably more energy, so hand brightness back to macOS when unplugged.
+    static var flickerOnlyOnPower: Bool {
+        get { d.object(forKey: "flickerOnlyOnPower") as? Bool ?? false }
+        set { d.set(newValue, forKey: "flickerOnlyOnPower") }
+    }
     /// Software brightness multiplier that compensates for the backlight being
     /// pinned at 100% in flicker-free mode. 1.0 when the mode is off.
     static var flickerComp: Double {
