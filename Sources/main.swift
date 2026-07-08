@@ -19,8 +19,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         popover.behavior = .transient
         popover.animates = true
-        popover.contentViewController = NSHostingController(
-            rootView: ContentView().environmentObject(model))
+        let host = NSHostingController(rootView: ContentView().environmentObject(model))
+        // Let SwiftUI's ideal size drive the popover, otherwise NSPopover
+        // keeps a stale default height and clips the content.
+        host.sizingOptions = [.preferredContentSize]
+        popover.contentViewController = host
+        popover.contentSize = host.view.fittingSize
 
         // Keep the menu bar icon in sync with phase and on/off state.
         model.objectWillChange
