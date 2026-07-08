@@ -127,17 +127,24 @@
     transition: background-color 2.5s ease;
     flex: none;
   }
-  /* the phase row previews the other times of day on click */
-  #phaserow { cursor: pointer; }
-  #phaserow:active .value { transform: scale(0.96); }
-  #phaserow .value { transition: color 2.5s ease, transform 120ms cubic-bezier(0.2, 0, 0, 1); }
-  #previewtag {
-    color: var(--faint);
-    font-size: 10px;
-    margin-left: 6px;
-    min-width: 52px;
+  /* the lever: scrub through the day, the page relights itself */
+  .lever input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    max-width: 170px;
+    margin-left: auto;
+    accent-color: var(--dot);
+  }
+  #todval {
+    min-width: 5ch;
+    text-align: right;
+    cursor: pointer;
+    color: var(--ink);
     transition: color 2.5s ease;
   }
+  #todval:hover { text-decoration: underline; text-underline-offset: 3px; }
+  /* fast color response while scrubbing, calm drift otherwise */
+  body.scrub, body.scrub * { transition-duration: 200ms !important; }
 
   .cta { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
   .download {
@@ -235,10 +242,14 @@
       <span class="label">lumen would set your screen to</span>
       <span class="value mono" id="kelvin">…</span>
     </div>
-    <div class="row" id="phaserow" title="click to preview golden hour and night">
+    <div class="row">
       <span class="label">this page, therefore</span>
-      <span id="previewtag" class="mono"></span>
       <span class="value mono" id="phase"><span class="dot"></span><span id="phasetext">…</span></span>
+    </div>
+    <div class="row lever">
+      <span class="label">drag through the day</span>
+      <input type="range" id="tod" min="0" max="1439" step="5" aria-label="simulated time of day">
+      <span class="mono" id="todval" title="back to live">live</span>
     </div>
   </div>
 
@@ -326,13 +337,20 @@ function sky(elev) {
 }
 
 let coords = null;
-let previewElev = null; // click-to-preview override
+let simMinutes = null; // lever override: minutes since local midnight, null = live
 const tzEstimate = () => ({ lat: 40, lon: -new Date().getTimezoneOffset() / 60 * 15 });
+
+function currentDate() {
+  if (simMinutes === null) return new Date();
+  const d = new Date();
+  d.setHours(0, simMinutes, 0, 0);
+  return d;
+}
 
 function apply() {
   const { lat, lon } = coords || tzEstimate();
-  const realElev = solarElevation(new Date(), lat, lon);
-  const elev = previewElev === null ? realElev : previewElev;
+  const now = currentDate();
+  const elev = solarElevation(now, lat, lon);
   const blend = dayBlend(elev);
   const t = 1 - blend;
   const s = sky(elev);
@@ -364,13 +382,36 @@ function apply() {
               : elev > -6 ? ['golden hour', '#f97316']
               : ['night', '#9aa4f2'];
   document.getElementById('phasetext').textContent = phase[0];
-  document.getElementById('previewtag').textContent = previewElev === null ? '' : 'preview';
   r.setProperty('--dot', phase[1]);
+
+  // lever position and label
+  const slider = document.getElementById('tod');
+  const label = document.getElementById('todval');
+  if (simMinutes === null) {
+    const live = new Date();
+    slider.value = live.getHours() * 60 + live.getMinutes();
+    label.textContent = 'live';
+  } else {
+    const hh = String(Math.floor(simMinutes / 60)).padStart(2, '0');
+    const mm = String(simMinutes % 60).padStart(2, '0');
+    label.textContent = hh + ':' + mm;
+  }
 }
 
-// click the phase row to tour the day: live → golden hour → night → live
-document.getElementById('phaserow').addEventListener('click', () => {
-  previewElev = previewElev === null ? 0 : previewElev === 0 ? -12 : null;
+// the lever: scrub the day, snap back to live by clicking the time
+let scrubTimer = null;
+document.getElementById('tod').addEventListener('input', e => {
+  simMinutes = +e.target.value;
+  document.body.classList.add('scrub');
+  clearTimeout(scrubTimer);
+  scrubTimer = setTimeout(() => document.body.classList.remove('scrub'), 500);
+  apply();
+});
+document.getElementById('todval').addEventListener('click', () => {
+  simMinutes = null;
+  document.body.classList.add('scrub');
+  clearTimeout(scrubTimer);
+  scrubTimer = setTimeout(() => document.body.classList.remove('scrub'), 500);
   apply();
 });
 
