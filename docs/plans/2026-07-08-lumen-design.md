@@ -1,4 +1,4 @@
-# Lumen — design
+# Circa — design
 
 **Goal.** A native macOS menu-bar app in the spirit of Iris/f.lux: shift screen
 color temperature with the time of day at the user's location, reduce eye
@@ -23,7 +23,7 @@ using Liquid Glass where relevant.
 
 ```
 Solar clock (elevation) ──┐
-Location chain ───────────┼─► LumenModel (5 s tick) ─► GammaController ─► display LUTs
+Location chain ───────────┼─► CircaModel (5 s tick) ─► GammaController ─► display LUTs
 Settings (UserDefaults) ──┘          │
                                      └─► Brightness (DisplayServices) for PWM mode
 SwiftUI popover ◄─ @Published state ─┘

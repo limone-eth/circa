@@ -1,11 +1,11 @@
-# Lumen
+# Circa
 
 A calm macOS menu-bar app that warms and dims your screen with the sun — like
 f.lux / Iris, built natively in Swift with a Liquid Glass popover UI.
 
-**[Download for Mac](https://github.com/simonestaffa/lumen/releases/latest/download/Lumen.zip)**
+**[Download for Mac](https://github.com/limone-eth/circa/releases/latest/download/Circa.zip)**
 (macOS 14+, Apple silicon · ad-hoc signed, so first launch is right-click → Open)
-· MIT licensed · [lumen-nine-nu.vercel.app](https://lumen-nine-nu.vercel.app)
+· MIT licensed · [circa.watch](https://circa.watch)
 
 ## What it does
 

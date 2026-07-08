@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.limone.Lumen</string>
+	<string>com.limone.Circa</string>
 	<key>CFBundleName</key>
-	<string>Lumen</string>
+	<string>Circa</string>
 	<key>CFBundleDisplayName</key>
-	<string>Lumen</string>
+	<string>Circa</string>
 	<key>CFBundleExecutable</key>
-	<string>Lumen</string>
+	<string>Circa</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
@@ -23,9 +23,9 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>
-	<string>Lumen uses your approximate location to compute local sunrise and sunset, so it can warm your screen at the right times. Your location never leaves your Mac.</string>
+	<string>Circa uses your approximate location to compute local sunrise and sunset, so it can warm your screen at the right times. Your location never leaves your Mac.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Lumen uses your approximate location to compute local sunrise and sunset, so it can warm your screen at the right times. Your location never leaves your Mac.</string>
+	<string>Circa uses your approximate location to compute local sunrise and sunset, so it can warm your screen at the right times. Your location never leaves your Mac.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 limone</string>
 </dict>

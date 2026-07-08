@@ -11,8 +11,8 @@ enum DayPhase {
 /// The whole engine: solar clock → target temperature → gamma, plus the
 /// published state the UI binds to. Everything runs on the main thread; the
 /// work per tick is trivial (a few thousand float multiplies).
-final class LumenModel: NSObject, ObservableObject {
-    static let shared = LumenModel()
+final class CircaModel: NSObject, ObservableObject {
+    static let shared = CircaModel()
 
     let gamma = GammaController()
     let location = LocationProvider()
@@ -47,7 +47,7 @@ final class LumenModel: NSObject, ObservableObject {
                 if launchAtLogin { try SMAppService.mainApp.register() }
                 else { try SMAppService.mainApp.unregister() }
             } catch {
-                NSLog("Lumen: launch-at-login change failed: \(error)")
+                NSLog("Circa: launch-at-login change failed: \(error)")
             }
         }
     }
@@ -97,7 +97,7 @@ final class LumenModel: NSObject, ObservableObject {
                               name: NSWorkspace.screensDidWakeNotification, object: nil)
 
         CGDisplayRegisterReconfigurationCallback({ _, _, _ in
-            DispatchQueue.main.async { LumenModel.shared.tick(slew: false) }
+            DispatchQueue.main.async { CircaModel.shared.tick(slew: false) }
         }, nil)
     }
 

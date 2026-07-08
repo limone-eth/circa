@@ -6,7 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
     private var cancellables = Set<AnyCancellable>()
-    private let model = LumenModel.shared
+    private let model = CircaModel.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let event = NSApp.currentEvent else { return togglePopover() }
         if event.type == .rightMouseUp {
             let menu = NSMenu()
-            menu.addItem(withTitle: "Quit Lumen", action: #selector(quit), keyEquivalent: "q")
+            menu.addItem(withTitle: "Quit Circa", action: #selector(quit), keyEquivalent: "q")
             menu.items.forEach { $0.target = self }
             statusItem.menu = menu
             statusItem.button?.performClick(nil)
@@ -82,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .night: name = "moon.stars"
             }
         }
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Lumen")
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Circa")
         image?.isTemplate = true
         return image
     }

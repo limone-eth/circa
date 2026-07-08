@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Root popover content
 
 struct ContentView: View {
-    @EnvironmentObject var model: LumenModel
+    @EnvironmentObject var model: CircaModel
 
     var body: some View {
         VStack(spacing: 12) {
@@ -286,7 +286,7 @@ private extension View {
 
 // MARK: - Presentation helpers on the model
 
-extension LumenModel {
+extension CircaModel {
     var isActive: Bool { enabled && pausedUntil == nil }
 
     var phaseTitle: String {
