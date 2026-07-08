@@ -13,15 +13,19 @@
 <meta name="twitter:card" content="summary">
 <style>
   :root {
-    --bg: #ffffff;
-    --ink: #18181b;
-    --muted: #71717a;
-    --faint: #a1a1aa;
-    --hair: rgba(0, 0, 0, 0.07);
-    --btn-bg: #18181b;
-    --btn-fg: #ffffff;
+    --sky-top: #e4eef5;
+    --sky-mid: #f6f1e6;
+    --sky-bot: #f2e6d0;
+    --glow-c: rgba(255, 224, 168, 0.5);
+    --glow-y: 20%;
+    --ink: #2a221a;
+    --muted: #7a6f60;
+    --faint: #a89a86;
+    --hair: rgba(60, 40, 20, 0.10);
+    --btn-bg: #2a221a;
+    --btn-fg: #fdf9f2;
     --dot: #f59e0b;
-    --card: rgba(255, 255, 255, 0.6);
+    --card: rgba(255, 252, 246, 0.62);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { -webkit-font-smoothing: antialiased; }
@@ -30,20 +34,37 @@
     font-size: 14px;
     line-height: 1.5;
     letter-spacing: -0.01em;
-    background: var(--bg);
     color: var(--ink);
     min-height: 100dvh;
     display: grid;
     place-items: center;
     overflow-x: clip;
-    transition: background-color 2.5s ease, color 2.5s ease;
+    transition: color 2.5s ease;
+    background: linear-gradient(to bottom, var(--sky-top), var(--sky-mid) 55%, var(--sky-bot));
   }
+  /* the sun: a soft glow whose height tracks real solar elevation */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(42rem 30rem at 50% var(--glow-y), var(--glow-c), transparent 65%);
+  }
+
   main {
     width: 100%;
     max-width: 440px;
-    padding: 56px 24px;
+    padding: 40px 28px 32px;
+    margin: 24px 16px;
+    background: var(--card);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(30, 18, 8, 0.06), 0 12px 40px rgba(30, 18, 8, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 0 1px var(--hair);
   }
-  @media (max-width: 480px) { main { padding: 36px 18px 44px; } }
+  @media (max-width: 480px) { main { padding: 32px 20px 28px; margin: 12px; } }
 
   .mono {
     font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
@@ -70,13 +91,13 @@
 
   .tagline {
     color: var(--muted);
-    margin: 10px 0 36px;
+    margin: 10px 0 32px;
     text-wrap: pretty;
     transition: color 2.5s ease;
   }
   .tagline strong { color: var(--ink); font-weight: 500; transition: color 2.5s ease; }
 
-  .rows { border-top: 1px solid var(--hair); margin-bottom: 40px; }
+  .rows { border-top: 1px solid var(--hair); margin-bottom: 36px; }
   .row {
     height: 52px;
     display: flex;
@@ -106,6 +127,17 @@
     transition: background-color 2.5s ease;
     flex: none;
   }
+  /* the phase row previews the other times of day on click */
+  #phaserow { cursor: pointer; }
+  #phaserow:active .value { transform: scale(0.96); }
+  #phaserow .value { transition: color 2.5s ease, transform 120ms cubic-bezier(0.2, 0, 0, 1); }
+  #previewtag {
+    color: var(--faint);
+    font-size: 10px;
+    margin-left: 6px;
+    min-width: 52px;
+    transition: color 2.5s ease;
+  }
 
   .cta { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
   .download {
@@ -125,18 +157,39 @@
   .download:active { transform: scale(0.96); }
   .cta .meta { color: var(--faint); transition: color 2.5s ease; }
 
-  .fine {
-    color: var(--faint);
+  details {
+    border-top: 1px solid var(--hair);
+    margin-top: 28px;
+  }
+  summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    color: var(--muted);
     font-size: 12px;
     transition: color 2.5s ease;
   }
-  .fine a { color: var(--muted); text-decoration: none; transition: color 2.5s ease; }
-  .fine a:hover { text-decoration: underline; }
+  summary::-webkit-details-marker { display: none; }
+  summary .tog { min-width: 1ch; color: var(--faint); transition: color 2.5s ease; }
+  summary .tog::before { content: "+"; }
+  details[open] summary .tog::before { content: "−"; }
+  details p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 10px;
+    text-wrap: pretty;
+    transition: color 2.5s ease;
+  }
+  details p:last-child { margin-bottom: 14px; }
 
   footer {
     display: flex;
     gap: 12px;
-    margin-top: 44px;
+    margin-top: 40px;
     padding-top: 12px;
     border-top: 1px solid var(--hair);
   }
@@ -155,7 +208,7 @@
   @keyframes enter { to { opacity: 1; transform: translateY(0); } }
   @media (prefers-reduced-motion: reduce) {
     .in { animation: none; opacity: 1; transform: none; }
-    body, .download { transition: none; }
+    body, .download, #phaserow .value { transition: none; }
   }
 </style>
 </head>
@@ -182,8 +235,9 @@
       <span class="label">lumen would set your screen to</span>
       <span class="value mono" id="kelvin">…</span>
     </div>
-    <div class="row">
+    <div class="row" id="phaserow" title="click to preview golden hour and night">
       <span class="label">this page, therefore</span>
+      <span id="previewtag" class="mono"></span>
       <span class="value mono" id="phase"><span class="dot"></span><span id="phasetext">…</span></span>
     </div>
   </div>
@@ -192,19 +246,31 @@
     <a class="download" href="https://github.com/simonestaffa/lumen/releases/latest/download/Lumen.zip">Download for Mac</a>
     <span class="meta mono">free · open source</span>
   </div>
-  <p class="fine in">apple silicon · ad-hoc signed: first launch is right-click → open</p>
+
+  <details class="in">
+    <summary><span class="tog"></span><span class="mono">why follow the sun?</span></summary>
+    <p>your body clock is set by light. bright, blue-rich light during the day
+       keeps you alert and anchors your circadian rhythm — the same light in the
+       evening suppresses melatonin and pushes sleep later.</p>
+    <p>screens are the brightest, bluest thing most of us look at after sunset.
+       warming and dimming them as the real sun goes down removes that signal,
+       so evenings wind down the way they're supposed to and eyes stop fighting
+       a small daylight-colored lamp in a dark room.</p>
+    <p>lumen does this automatically, from your actual sunrise and sunset —
+       nothing to remember, nothing to schedule.</p>
+  </details>
 
   <footer class="in">
     <a href="https://github.com/simonestaffa/lumen">repo</a>
     <a href="https://github.com/simonestaffa/lumen/blob/main/LICENSE">mit</a>
-    <span class="right mono">native swift · no accounts · nothing leaves your mac</span>
   </footer>
 </main>
 
 <script>
 // The page does what the app does: it follows your sun.
 // Same NOAA solar-elevation math as the app; location from IP (no prompt),
-// timezone estimate as instant fallback.
+// timezone estimate as instant fallback. The sky gradient, the glow height,
+// and every text color are driven by the sun's real elevation.
 
 function solarElevation(date, lat, lon) {
   const rad = Math.PI / 180;
@@ -228,45 +294,85 @@ function dayBlend(elev) { // 1 = day, 0 = night, smoothstep across civil twiligh
   return x * x * (3 - 2 * x);
 }
 
-const DAY = {
-  bg: [255, 255, 255], ink: [24, 24, 27], muted: [113, 113, 122],
-  faint: [161, 161, 170], btnBg: [24, 24, 27], btnFg: [255, 255, 255]
+// Sky keyframes by sun elevation: [topRGB, midRGB, botRGB, glowAlpha]
+const SKY = [
+  [-12, [21, 16, 19],    [25, 19, 16],    [30, 21, 15],    0.00],
+  [ -4, [43, 32, 52],    [74, 45, 55],    [111, 62, 43],   0.30],
+  [  0, [100, 110, 148], [198, 139, 105], [230, 166, 92],  0.55],
+  [  8, [166, 189, 214], [230, 203, 164], [242, 212, 154], 0.45],
+  [ 30, [214, 230, 241], [243, 236, 222], [242, 229, 203], 0.35],
+  [ 90, [224, 237, 245], [246, 240, 228], [242, 228, 205], 0.30],
+];
+const INK = { // text & controls: warm dark on light ↔ warm cream on dark
+  day:   { ink: [42, 34, 26],    muted: [122, 111, 96],  faint: [168, 154, 134],
+           btnBg: [42, 34, 26],  btnFg: [253, 249, 242], card: [255, 252, 246, 0.62],
+           hair: 'rgba(60, 40, 20, 0.10)' },
+  night: { ink: [240, 224, 195], muted: [178, 154, 124], faint: [128, 110, 90],
+           btnBg: [235, 172, 92], btnFg: [36, 24, 10],   card: [28, 20, 14, 0.55],
+           hair: 'rgba(255, 235, 200, 0.10)' }
 };
-const NIGHT = {
-  bg: [23, 18, 14], ink: [240, 224, 195], muted: [176, 152, 122],
-  faint: [124, 106, 86], btnBg: [235, 172, 92], btnFg: [36, 24, 10]
-};
-const lerp = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-const css = c => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+const lerp = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const rgb = c => `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
+
+function sky(elev) {
+  const e = Math.max(SKY[0][0], Math.min(90, elev));
+  let i = 0;
+  while (i < SKY.length - 2 && e > SKY[i + 1][0]) i++;
+  const [e0, t0, m0, b0, g0] = SKY[i];
+  const [e1, t1, m1, b1, g1] = SKY[i + 1];
+  const t = Math.max(0, Math.min(1, (e - e0) / (e1 - e0)));
+  return { top: lerp(t0, t1, t), mid: lerp(m0, m1, t), bot: lerp(b0, b1, t),
+           glow: g0 + (g1 - g0) * t };
+}
 
 let coords = null;
+let previewElev = null; // click-to-preview override
 const tzEstimate = () => ({ lat: 40, lon: -new Date().getTimezoneOffset() / 60 * 15 });
 
 function apply() {
   const { lat, lon } = coords || tzEstimate();
-  const elev = solarElevation(new Date(), lat, lon);
+  const realElev = solarElevation(new Date(), lat, lon);
+  const elev = previewElev === null ? realElev : previewElev;
   const blend = dayBlend(elev);
   const t = 1 - blend;
+  const s = sky(elev);
   const r = document.documentElement.style;
-  r.setProperty('--bg', css(lerp(DAY.bg, NIGHT.bg, t)));
-  r.setProperty('--ink', css(lerp(DAY.ink, NIGHT.ink, t)));
-  r.setProperty('--muted', css(lerp(DAY.muted, NIGHT.muted, t)));
-  r.setProperty('--faint', css(lerp(DAY.faint, NIGHT.faint, t)));
-  r.setProperty('--btn-bg', css(lerp(DAY.btnBg, NIGHT.btnBg, t)));
-  r.setProperty('--btn-fg', css(lerp(DAY.btnFg, NIGHT.btnFg, t)));
-  r.setProperty('--hair', t > 0.5 ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)');
+
+  r.setProperty('--sky-top', rgb(s.top));
+  r.setProperty('--sky-mid', rgb(s.mid));
+  r.setProperty('--sky-bot', rgb(s.bot));
+  // the glow rides the sun: overhead at noon, on the horizon at sunset
+  r.setProperty('--glow-y', Math.max(4, Math.min(108, 86 - elev * 0.92)) + '%');
+  r.setProperty('--glow-c', `rgba(255, ${Math.round(214 - t * 60)}, ${Math.round(160 - t * 70)}, ${s.glow.toFixed(2)})`);
+
+  const d = INK.day, n = INK.night;
+  r.setProperty('--ink', rgb(lerp(d.ink, n.ink, t)));
+  r.setProperty('--muted', rgb(lerp(d.muted, n.muted, t)));
+  r.setProperty('--faint', rgb(lerp(d.faint, n.faint, t)));
+  r.setProperty('--btn-bg', rgb(lerp(d.btnBg, n.btnBg, t)));
+  r.setProperty('--btn-fg', rgb(lerp(d.btnFg, n.btnFg, t)));
+  const card = lerp(d.card, n.card, t);
+  r.setProperty('--card', `rgba(${Math.round(card[0])}, ${Math.round(card[1])}, ${Math.round(card[2])}, ${card[3].toFixed(2)})`);
+  r.setProperty('--hair', t > 0.5 ? n.hair : d.hair);
 
   const kelvin = Math.round((2300 + (6500 - 2300) * blend) / 50) * 50;
   document.getElementById('elev').textContent =
     (elev >= 0 ? '+' : '−') + Math.abs(elev).toFixed(1) + '°';
   document.getElementById('kelvin').textContent = kelvin + ' K';
 
-  const phase = elev > 6 ? ['daylight', '#f59e0b']
+  const phase = elev > 6 ? ['daylight', '#e8a13c']
               : elev > -6 ? ['golden hour', '#f97316']
-              : ['night', '#8f9bf0'];
+              : ['night', '#9aa4f2'];
   document.getElementById('phasetext').textContent = phase[0];
+  document.getElementById('previewtag').textContent = previewElev === null ? '' : 'preview';
   r.setProperty('--dot', phase[1]);
 }
+
+// click the phase row to tour the day: live → golden hour → night → live
+document.getElementById('phaserow').addEventListener('click', () => {
+  previewElev = previewElev === null ? 0 : previewElev === 0 ? -12 : null;
+  apply();
+});
 
 apply(); // instant paint from timezone estimate — no flash of wrong theme
 
