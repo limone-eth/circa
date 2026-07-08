@@ -235,7 +235,7 @@
 
   <div class="rows in">
     <div class="row">
-      <span class="label">sun elevation</span>
+      <span class="label" id="elevlabel">sun elevation</span>
       <span class="value mono" id="elev">…</span>
     </div>
     <div class="row">
@@ -337,6 +337,7 @@ function sky(elev) {
 }
 
 let coords = null;
+let place = null; // city or country from the same IP lookup, display only
 let simMinutes = null; // lever override: minutes since local midnight, null = live
 const tzEstimate = () => ({ lat: 40, lon: -new Date().getTimezoneOffset() / 60 * 15 });
 
@@ -383,6 +384,8 @@ function apply() {
               : ['night', '#9aa4f2'];
   document.getElementById('phasetext').textContent = phase[0];
   r.setProperty('--dot', phase[1]);
+  document.getElementById('elevlabel').textContent =
+    place ? 'sun over ' + place : 'sun elevation';
 
   // lever position and label
   const slider = document.getElementById('tod');
@@ -422,6 +425,8 @@ fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) })
   .then(j => {
     if (typeof j.latitude === 'number' && typeof j.longitude === 'number') {
       coords = { lat: j.latitude, lon: j.longitude };
+      const name = j.city || j.country_name;
+      if (name) place = String(name).toLowerCase();
       apply();
     }
   })
