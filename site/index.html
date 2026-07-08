@@ -194,34 +194,21 @@
   }
   .fine a { color: var(--muted); transition: color 2.5s ease; }
 
-  details {
-    border-top: 1px solid var(--hair);
-    margin-top: 28px;
-  }
-  summary {
-    list-style: none;
-    cursor: pointer;
+  .aboutlink {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     height: 40px;
+    margin-top: 28px;
+    border-top: 1px solid var(--hair);
     color: var(--muted);
-    font-size: 12px;
+    text-decoration: none;
     transition: color 2.5s ease;
   }
-  summary::-webkit-details-marker { display: none; }
-  summary .tog { min-width: 1ch; color: var(--faint); transition: color 2.5s ease; }
-  summary .tog::before { content: "+"; }
-  details[open] summary .tog::before { content: "−"; }
-  details p {
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.6;
-    margin: 0 0 10px;
-    text-wrap: pretty;
-    transition: color 2.5s ease;
-  }
-  details p:last-child { margin-bottom: 14px; }
+  .aboutlink:hover { color: var(--ink); }
+  .aboutlink .arrow { color: var(--faint); transition: color 2.5s ease, transform 120ms cubic-bezier(0.2, 0, 0, 1); }
+  .aboutlink:hover .arrow { transform: translateX(2px); color: var(--dot); }
 
   footer {
     display: flex;
@@ -290,18 +277,10 @@
     <p class="fine">download link lands in your inbox</p>
   </div>
 
-  <details class="in">
-    <summary><span class="tog"></span><span class="mono">why follow the sun?</span></summary>
-    <p>your body clock is set by light. bright, blue-rich light during the day
-       keeps you alert and anchors your circadian rhythm. the same light in the
-       evening suppresses melatonin and pushes sleep later.</p>
-    <p>screens are the brightest, bluest thing most of us look at after sunset.
-       warming and dimming them as the real sun goes down removes that signal,
-       so evenings wind down the way they're supposed to and eyes stop fighting
-       a small daylight-colored lamp in a dark room.</p>
-    <p>circa does this automatically, from your actual sunrise and sunset.
-       nothing to remember, nothing to schedule.</p>
-  </details>
+  <a class="aboutlink in" href="/about">
+    <span class="mono">why follow the sun? the science, and how circa compares</span>
+    <span class="mono arrow">→</span>
+  </a>
 
 </main>
 
