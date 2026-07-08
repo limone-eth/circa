@@ -1,0 +1,224 @@
+import AppKit
+import Combine
+import CoreGraphics
+import Foundation
+import ServiceManagement
+
+enum DayPhase {
+    case day, twilight, night
+}
+
+/// The whole engine: solar clock → target temperature → gamma, plus the
+/// published state the UI binds to. Everything runs on the main thread; the
+/// work per tick is trivial (a few thousand float multiplies).
+final class LumenModel: NSObject, ObservableObject {
+    static let shared = LumenModel()
+
+    let gamma = GammaController()
+    let location = LocationProvider()
+
+    // MARK: - Published settings (didSet persists and re-applies)
+
+    @Published var enabled: Bool = Settings.enabled {
+        didSet {
+            Settings.enabled = enabled
+            enabled ? applyNow() : suspendOutput()
+        }
+    }
+    @Published var dayTemp: Double = Settings.dayTemp {
+        didSet { Settings.dayTemp = dayTemp; applyNow() }
+    }
+    @Published var nightTemp: Double = Settings.nightTemp {
+        didSet { Settings.nightTemp = nightTemp; applyNow() }
+    }
+    @Published var dimPercent: Double = Settings.dimPercent {
+        didSet { Settings.dimPercent = dimPercent; applyNow() }
+    }
+    @Published var flickerFree: Bool = Settings.flickerFree {
+        didSet {
+            Settings.flickerFree = flickerFree
+            flickerFree ? engageFlickerFree() : disengageFlickerFree()
+            applyNow()
+        }
+    }
+    @Published var launchAtLogin: Bool = (SMAppService.mainApp.status == .enabled) {
+        didSet {
+            do {
+                if launchAtLogin { try SMAppService.mainApp.register() }
+                else { try SMAppService.mainApp.unregister() }
+            } catch {
+                NSLog("Lumen: launch-at-login change failed: \(error)")
+            }
+        }
+    }
+
+    // MARK: - Published live state (read-only for the UI)
+
+    @Published private(set) var phase: DayPhase = .day
+    @Published private(set) var appliedKelvin: Double = 6500
+    @Published private(set) var placeName: String = ""
+    @Published private(set) var locationSource: String = ""
+    @Published var pausedUntil: Date?
+
+    let flickerFreeAvailable = Brightness.available
+
+    private var timer: Timer?
+    private var lastLocationRefresh = Date()
+    private var outputSuspended = false
+
+    // MARK: - Lifecycle
+
+    func start() {
+        placeName = location.placeName
+        locationSource = location.sourceName
+        location.onUpdate = { [weak self] in
+            guard let self else { return }
+            placeName = location.placeName
+            locationSource = location.sourceName
+            tick(slew: false)
+        }
+        location.start()
+
+        // Re-capture the backlight if flicker-free mode was on when we quit.
+        if flickerFree { engageFlickerFree() }
+
+        tick(slew: false)
+
+        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            self?.tick(slew: true)
+        }
+
+        let workspace = NSWorkspace.shared.notificationCenter
+        workspace.addObserver(self, selector: #selector(systemWoke),
+                              name: NSWorkspace.didWakeNotification, object: nil)
+        workspace.addObserver(self, selector: #selector(systemWoke),
+                              name: NSWorkspace.screensDidWakeNotification, object: nil)
+
+        CGDisplayRegisterReconfigurationCallback({ _, _, _ in
+            DispatchQueue.main.async { LumenModel.shared.tick(slew: false) }
+        }, nil)
+    }
+
+    func shutdown() {
+        timer?.invalidate()
+        if flickerFree, let id = Brightness.builtinDisplay() {
+            // Leave the backlight at the perceived brightness so quitting
+            // doesn't blast the user with a full-brightness screen.
+            Brightness.set(id, Float(Settings.flickerComp * (1 - dimPercent / 100)))
+        }
+        gamma.restore()
+    }
+
+    @objc private func systemWoke() {
+        location.refresh()
+        lastLocationRefresh = Date()
+        // Give the displays a moment to come back before touching LUTs.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            self?.tick(slew: false)
+        }
+    }
+
+    // MARK: - Pause
+
+    func pause(for seconds: TimeInterval) {
+        pausedUntil = Date().addingTimeInterval(seconds)
+        suspendOutput()
+    }
+
+    func pauseUntilSunrise() {
+        pausedUntil = Solar.nextSunrise(after: Date(),
+                                        latitude: location.latitude,
+                                        longitude: location.longitude)
+        suspendOutput()
+    }
+
+    func resume() {
+        pausedUntil = nil
+        applyNow()
+    }
+
+    // MARK: - Engine
+
+    /// Immediate, non-animated apply (slider drags, toggles).
+    func applyNow() { tick(slew: false) }
+
+    private func tick(slew: Bool) {
+        if Date().timeIntervalSince(lastLocationRefresh) > 3 * 3600 {
+            location.refresh()
+            lastLocationRefresh = Date()
+        }
+
+        if let until = pausedUntil, Date() >= until { pausedUntil = nil }
+
+        let elevation = Solar.elevation(date: Date(),
+                                        latitude: location.latitude,
+                                        longitude: location.longitude)
+        let newPhase: DayPhase = elevation > 6 ? .day : (elevation < -6 ? .night : .twilight)
+        if phase != newPhase { phase = newPhase }
+
+        guard enabled, pausedUntil == nil else {
+            suspendOutput()
+            return
+        }
+        outputSuspended = false
+
+        // Smoothstep between full night (−6°) and full day (+6°) elevation.
+        let x = max(0, min(1, (elevation + 6) / 12))
+        let blend = x * x * (3 - 2 * x)
+        let target = nightTemp + (dayTemp - nightTemp) * blend
+
+        if slew {
+            // ≤150 K per 5 s tick → sunset-like drift, never a visible jump.
+            let delta = target - appliedKelvin
+            appliedKelvin += max(-150, min(150, delta))
+        } else {
+            appliedKelvin = target
+        }
+
+        if flickerFree { flickerWatchdog() }
+
+        gamma.apply(kelvin: appliedKelvin, dim: effectiveDim())
+    }
+
+    private func effectiveDim() -> Double {
+        let comp = flickerFree ? Settings.flickerComp : 1.0
+        return max(0.12, (1 - dimPercent / 100) * comp)
+    }
+
+    private func suspendOutput() {
+        guard !outputSuspended else { return }
+        outputSuspended = true
+        gamma.restore()
+    }
+
+    // MARK: - Flicker-free (PWM-safe) mode
+
+    /// Pin the backlight at 100% (no PWM strobing) and fold the current
+    /// hardware brightness into a software dim so perceived brightness is
+    /// unchanged.
+    private func engageFlickerFree() {
+        guard let id = Brightness.builtinDisplay(), let hw = Brightness.get(id) else { return }
+        if hw < 0.995 {
+            Settings.flickerComp = max(0.15, Double(hw))
+            Brightness.set(id, 1.0)
+        } else if Settings.flickerComp == 1.0 {
+            Settings.flickerComp = 1.0
+        }
+    }
+
+    /// Give brightness back to the hardware at the same perceived level.
+    private func disengageFlickerFree() {
+        if let id = Brightness.builtinDisplay() {
+            Brightness.set(id, Float(Settings.flickerComp))
+        }
+        Settings.flickerComp = 1.0
+    }
+
+    /// Brightness keys still work in flicker-free mode: any hardware change
+    /// is absorbed into the software dim and the backlight is re-pinned.
+    private func flickerWatchdog() {
+        guard let id = Brightness.builtinDisplay(), let hw = Brightness.get(id), hw < 0.985 else { return }
+        Settings.flickerComp = max(0.15, Settings.flickerComp * Double(hw))
+        Brightness.set(id, 1.0)
+    }
+}
