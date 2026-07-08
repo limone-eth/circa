@@ -4,12 +4,14 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var model: CircaModel
+    @State private var showAdvanced = false
 
     var body: some View {
         VStack(spacing: 12) {
             header
             slidersCard
             togglesCard
+            advancedCard
             pauseSection
             footer
         }
@@ -105,9 +107,38 @@ struct ContentView: View {
                           tint: Color.yellow) { "\(Int($0)) %" }
                     .transition(.opacity)
 
+            }
+        }
+        .animation(.spring(duration: 0.25, bounce: 0), value: model.flickerFree)
+    }
+
+    // MARK: Advanced (collapsed by default)
+
+    private var advancedCard: some View {
+        Card {
+            Button {
+                withAnimation(.spring(duration: 0.25, bounce: 0)) { showAdvanced.toggle() }
+            } label: {
+                HStack {
+                    Text("Advanced")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(showAdvanced ? 0 : -90))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if showAdvanced {
+                Divider()
+
                 Toggle(isOn: $model.flickerOnlyOnPower) {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Only on power adapter")
+                        Text("Flicker-free only on power adapter")
                         Text(model.flickerSuspended
                              ? "Paused right now: on battery. Brightness is back with macOS until you plug in."
                              : "The pinned backlight draws noticeably more energy, so on battery Circa hands brightness back to macOS.")
@@ -118,34 +149,34 @@ struct ContentView: View {
                 }
                 .toggleStyle(.switch)
                 .controlSize(.small)
-                .transition(.opacity)
-            }
+                .disabled(!model.flickerFree)
 
-            Divider()
+                if model.autoBrightnessAvailable {
+                    Divider()
 
-            if model.autoBrightnessAvailable {
-                Toggle(isOn: $model.autoBrightness) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Auto-adjust brightness")
-                        Text("Recommended off with Circa: the ambient light sensor keeps nudging brightness against the calm night curve, and while flicker-free pins the backlight it gets overridden anyway. macOS notes energy use can be higher without it, so re-enable it if you turn Circa off.")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    Toggle(isOn: $model.autoBrightness) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Auto-adjust brightness")
+                            Text("Recommended off with Circa: the ambient light sensor keeps nudging brightness against the calm night curve. Circa turns it off while flicker-free is on and hands it back after.")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                }
+
+                Divider()
+
+                Toggle(isOn: $model.launchAtLogin) {
+                    Text("Launch at login")
                 }
                 .toggleStyle(.switch)
                 .controlSize(.small)
-
-                Divider()
             }
-
-            Toggle(isOn: $model.launchAtLogin) {
-                Text("Launch at login")
-            }
-            .toggleStyle(.switch)
-            .controlSize(.small)
         }
-        .animation(.spring(duration: 0.25, bounce: 0), value: model.flickerFree)
+        .animation(.spring(duration: 0.25, bounce: 0), value: showAdvanced)
     }
 
     // MARK: Pause

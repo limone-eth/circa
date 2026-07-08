@@ -29,9 +29,16 @@ enum Settings {
     }
     /// Suspend flicker-free on battery: the pinned 100% backlight draws
     /// noticeably more energy, so hand brightness back to macOS when unplugged.
+    /// Defaults on: flicker-free without it silently costs battery hours.
     static var flickerOnlyOnPower: Bool {
-        get { d.object(forKey: "flickerOnlyOnPower") as? Bool ?? false }
+        get { d.object(forKey: "flickerOnlyOnPower") as? Bool ?? true }
         set { d.set(newValue, forKey: "flickerOnlyOnPower") }
+    }
+    /// True when Circa itself turned macOS auto-brightness off on engaging
+    /// flicker-free, so disengaging can hand it back.
+    static var restoreAutoBrightness: Bool {
+        get { d.object(forKey: "restoreAutoBrightness") as? Bool ?? false }
+        set { d.set(newValue, forKey: "restoreAutoBrightness") }
     }
     /// Software brightness multiplier that compensates for the backlight being
     /// pinned at 100% in flicker-free mode. 1.0 when the mode is off.

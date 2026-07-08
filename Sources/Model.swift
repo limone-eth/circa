@@ -286,6 +286,12 @@ final class CircaModel: NSObject, ObservableObject {
     /// brightness is unchanged at the moment of enabling.
     private func engageFlickerFree() {
         guard let id = Brightness.builtinDisplay(), let hw = Brightness.get(id) else { return }
+        // The ambient light sensor would fight the pinned backlight, so turn
+        // it off by default and remember to hand it back on disengage.
+        if Brightness.autoBrightnessEnabled() {
+            Settings.restoreAutoBrightness = true
+            Brightness.setAutoBrightness(false)
+        }
         if hw < 0.995 {
             flickerBrightness = max(0.2, Double(hw))
             Brightness.set(id, 1.0)
@@ -299,6 +305,10 @@ final class CircaModel: NSObject, ObservableObject {
         }
         Settings.flickerComp = 1.0
         flickerBrightness = 1.0
+        if Settings.restoreAutoBrightness {
+            Settings.restoreAutoBrightness = false
+            Brightness.setAutoBrightness(true)
+        }
     }
 
     /// Keep the backlight pinned at 100% without absorbing the change into
