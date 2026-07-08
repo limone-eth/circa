@@ -127,7 +127,7 @@ struct ContentView: View {
                 Toggle(isOn: $model.autoBrightness) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Auto-adjust brightness")
-                        Text("The macOS ambient light sensor. Overridden while flicker-free is pinning the backlight.")
+                        Text("Recommended off with Circa: the ambient light sensor keeps nudging brightness against the calm night curve, and while flicker-free pins the backlight it gets overridden anyway. macOS notes energy use can be higher without it, so re-enable it if you turn Circa off.")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)

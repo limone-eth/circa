@@ -3,8 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-APP=build/Circa.app
-rm -rf build
+APP=build.noindex/Circa.app
+rm -rf build.noindex
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/"
