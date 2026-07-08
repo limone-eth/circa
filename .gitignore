@@ -2,3 +2,5 @@ build.noindex/
 .DS_Store
 dist/
 brag-output*/
+windows/bin/
+windows/obj/

@@ -55,3 +55,16 @@ for Location permission on first run (denying it just falls back to IP).
 | `Sources/Model.swift` | The engine: 5 s tick, slewed transitions, pause, flicker watchdog |
 | `Sources/ContentView.swift` | SwiftUI popover (Liquid Glass on macOS 26+) |
 | `Sources/main.swift` | AppKit shell: status item, popover, right-click quit |
+
+## Windows version
+
+`windows/` contains a C#/.NET 8 port with the same engine: solar-elevation
+curve, gamma ramps via `SetDeviceGammaRamp`, night-scaled dim, and
+battery-aware flicker-free mode (backlight pinned via WMI). Function-first
+WinForms tray app; IP-based location (city-level is plenty for sunrise math).
+
+Build: `dotnet publish windows/Circa.Win.csproj -c Release -r win-x64
+--self-contained -p:PublishSingleFile=true` — or grab the artifact from the
+"Windows build" GitHub Action. Note: deep-amber settings below ~3400 K may be
+clamped by the default Windows gamma limit; the app degrades gracefully, and
+the f.lux-style `GdiIcmGammaRange` registry unlock removes the limit.
