@@ -43,6 +43,8 @@ public sealed class PopoverForm : Form
     {
         _engine = engine;
 
+        SuspendLayout();
+
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         Text = "Circa";
         ShowInTaskbar = false;
@@ -51,7 +53,6 @@ public sealed class PopoverForm : Form
         BackColor = Bg;
         ForeColor = Ink;
         Font = new Font("Segoe UI", 9.5f);
-        ClientSize = new Size(320, 520);
         Deactivate += (_, _) => Hide();
 
         int y = 14;
@@ -63,6 +64,15 @@ public sealed class PopoverForm : Form
         y = AddToggles(y);
         y = AddPauseRow(y);
         AddFooter(y);
+
+        // Every bound above is authored in 96-DPI pixels; on a scaled display
+        // (125–200%, i.e. most laptops) the whole layout must scale with it.
+        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96f, 96f);
+        ClientSize = new Size(320, 520);
+
+        ResumeLayout(false);
+        PerformLayout();
 
         _engine.Changed += () => { if (IsHandleCreated) BeginInvoke(SyncFromEngine); };
         SyncFromEngine();

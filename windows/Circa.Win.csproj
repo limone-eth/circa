@@ -10,9 +10,14 @@
     <AssemblyName>Circa</AssemblyName>
     <RootNamespace>Circa</RootNamespace>
     <ApplicationIcon>circa.ico</ApplicationIcon>
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- SystemAware, not PerMonitorV2: the popover is a fixed-pixel layout,
+         and PMv2's per-monitor rescaling blew the window up to screen size
+         with unscaled controls on scaled displays. SystemAware scales once
+         at startup (via the form's AutoScaleMode.Dpi) and lets Windows
+         handle mixed-DPI monitors. -->
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>Circa</Product>
     <Description>Your screen, in sync with the sun.</Description>
   </PropertyGroup>
