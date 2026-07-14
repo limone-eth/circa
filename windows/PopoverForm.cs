@@ -183,16 +183,34 @@ public sealed class PopoverForm : Form
 
     private int AddFlickerSection(int y)
     {
-        _flicker.Text = "Flicker-free dimming (PWM safe)";
-        _flicker.SetBounds(16, y, 290, 22);
+        _flicker.Text = "Flicker-free dimming";
+        _flicker.SetBounds(16, y, 172, 22);
         _flicker.ForeColor = Ink;
         _flicker.Enabled = _engine.FlickerFreeAvailable;
         _flicker.CheckedChanged += (_, _) => { if (!_updatingUi) _engine.SetFlickerFree(_flicker.Checked); };
-        _tips.SetToolTip(_flicker, _engine.FlickerFreeAvailable
-            ? "Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM). " +
-              "Use the brightness slider below; the keys are overridden."
-            : "No controllable backlight found on this machine.");
         Controls.Add(_flicker);
+
+        // The checkbox may be disabled (no controllable backlight), and
+        // disabled controls never show tooltips — so the explainer lives on
+        // an always-enabled "?" next to the label.
+        string help = _engine.FlickerFreeAvailable
+            ? "Most laptop panels dim by strobing the backlight (PWM), which some eyes feel as " +
+              "strain or headaches. Flicker-free pins the backlight at 100% — no strobing — and " +
+              "dims in software instead. Brightness keys are overridden while it's on; use the " +
+              "slider below."
+            : "No controllable backlight found on this machine.";
+        var flickerHelp = new Label
+        {
+            Text = "?",
+            ForeColor = Muted,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Cursor = Cursors.Help,
+        };
+        flickerHelp.Font = new Font("Segoe UI", 8f);
+        flickerHelp.SetBounds(188, y + 3, 16, 16);
+        _tips.SetToolTip(flickerHelp, help);
+        flickerHelp.Click += (_, _) => _tips.Show(help, flickerHelp, 12, 14, 8000);
+        Controls.Add(flickerHelp);
 
         var bLabel = new Label { Text = "Brightness", ForeColor = Muted };
         bLabel.SetBounds(32, y + 26, 90, 18);

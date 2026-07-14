@@ -6,6 +6,7 @@ struct ContentView: View {
     @EnvironmentObject var model: CircaModel
     @ObservedObject private var updater = Updater.shared
     @State private var showAdvanced = false
+    @State private var showFlickerHelp = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -106,20 +107,25 @@ struct ContentView: View {
 
     private var flickerCard: some View {
         Card {
-            Toggle(isOn: $model.flickerFree) {
+            HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Flicker-free dimming")
+                    HStack(spacing: 4) {
+                        Text("Flicker-free dimming")
+                        flickerHelpButton
+                    }
                     if !model.flickerFreeAvailable {
                         Text("Not available for this display.")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
                 }
+                Spacer(minLength: 0)
+                Toggle("", isOn: $model.flickerFree)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .disabled(!model.flickerFreeAvailable)
             }
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .disabled(!model.flickerFreeAvailable)
-            .help("Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM). Use the slider for brightness; the keys are overridden.")
 
             if model.flickerFree && model.flickerFreeAvailable {
                 SliderRow(title: "Brightness", systemImage: "sun.min",
@@ -133,6 +139,28 @@ struct ContentView: View {
             }
         }
         .animation(.spring(duration: 0.25, bounce: 0), value: model.flickerFree)
+    }
+
+    private var flickerHelpButton: some View {
+        Button {
+            showFlickerHelp.toggle()
+        } label: {
+            Image(systemName: "questionmark.circle")
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showFlickerHelp, arrowEdge: .trailing) {
+            Text("Most laptop panels dim by strobing the backlight (PWM), " +
+                 "which some eyes feel as strain or headaches. Flicker-free " +
+                 "pins the backlight at 100% — no strobing — and dims in " +
+                 "software instead. Brightness keys are overridden while " +
+                 "it's on; use the slider here.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 230)
+                .padding(12)
+        }
     }
 
     // MARK: Advanced (collapsed by default)
