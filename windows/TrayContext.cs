@@ -7,7 +7,7 @@ public sealed class TrayContext : ApplicationContext
 {
     private readonly Engine _engine = new();
     private readonly NotifyIcon _tray = new();
-    private readonly PopoverForm _popover;
+    private PopoverForm _popover; // recreated if it ever gets disposed
     private readonly System.Windows.Forms.Timer _timer = new();
 
     public TrayContext()
@@ -56,6 +56,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void TogglePopover()
     {
+        if (_popover.IsDisposed) _popover = new PopoverForm(_engine);
         if (_popover.Visible)
         {
             _popover.Hide();

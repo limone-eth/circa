@@ -54,6 +54,17 @@ public sealed class PopoverForm : Form
         ForeColor = Ink;
         Font = new Font("Segoe UI", 9.5f);
         Deactivate += (_, _) => Hide();
+        // Closing via the title-bar X disposes the form; the next tray click
+        // would then Show() a disposed object. Hide instead — the tray owns
+        // this form's lifetime. Application.Exit (other close reasons) still works.
+        FormClosing += (_, e) =>
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                Hide();
+            }
+        };
 
         int y = 14;
         y = AddHeader(y);

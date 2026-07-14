@@ -17,7 +17,7 @@
          handle mixed-DPI monitors. -->
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Product>Circa</Product>
     <Description>Your screen, in sync with the sun.</Description>
   </PropertyGroup>
