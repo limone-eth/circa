@@ -85,11 +85,8 @@ public sealed class TrayContext : ApplicationContext
             _popover.Hide();
             return;
         }
-        var screen = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1200, 800);
-        _popover.Location = new Point(
-            Math.Max(0, screen.Right - _popover.Width - 12),
-            Math.Max(0, screen.Bottom - _popover.Height - 12));
         _popover.SyncFromEngine();
+        _popover.PositionAboveTray();
         _popover.Show();
         _popover.Activate();
     }

@@ -43,6 +43,30 @@ enum Solar {
         return start.addingTimeInterval(8 * 3600) // polar fallback: 8 h
     }
 
+    /// First moment the engine's day phase (±6° twilight thresholds) changes:
+    /// 10-minute scan up to 26 h ahead, bisected to the minute. Nil when the
+    /// sun never crosses a threshold (polar day/night).
+    static func nextPhaseChange(after start: Date, latitude: Double, longitude: Double) -> Date? {
+        func band(_ date: Date) -> Int {
+            let e = elevation(date: date, latitude: latitude, longitude: longitude)
+            return e > 6 ? 2 : (e < -6 ? 0 : 1)
+        }
+        let startBand = band(start)
+        var lo = start
+        for _ in 0..<(26 * 6) {
+            var hi = lo.addingTimeInterval(600)
+            if band(hi) != startBand {
+                while hi.timeIntervalSince(lo) > 60 {
+                    let mid = lo.addingTimeInterval(hi.timeIntervalSince(lo) / 2)
+                    if band(mid) != startBand { hi = mid } else { lo = mid }
+                }
+                return hi
+            }
+            lo = hi
+        }
+        return nil
+    }
+
     private static func deg2rad(_ v: Double) -> Double { v * .pi / 180 }
     private static func rad2deg(_ v: Double) -> Double { v * 180 / .pi }
 }

@@ -97,6 +97,9 @@ final class CircaModel: NSObject, ObservableObject {
     @Published private(set) var placeName: String = ""
     @Published private(set) var locationSource: String = ""
     @Published var pausedUntil: Date?
+    /// When the day phase next flips (nil in polar day/night), and to what.
+    @Published private(set) var nextTransition: Date?
+    @Published private(set) var nextPhase: DayPhase = .night
 
     let flickerFreeAvailable = Brightness.available
 
@@ -215,6 +218,7 @@ final class CircaModel: NSObject, ObservableObject {
                                         longitude: location.longitude)
         let newPhase: DayPhase = elevation > 6 ? .day : (elevation < -6 ? .night : .twilight)
         if phase != newPhase { phase = newPhase }
+        updateForecast()
 
         guard enabled, pausedUntil == nil else {
             suspendOutput()
@@ -266,6 +270,29 @@ final class CircaModel: NSObject, ObservableObject {
     }
 
     private var lastEffectiveDim: Double = 1
+
+    /// The scan restarts from "now" every tick, so the crossing minute can
+    /// jitter by a step; only publish moves larger than that to keep the UI
+    /// (and objectWillChange) quiet at steady state.
+    private func updateForecast() {
+        let next = Solar.nextPhaseChange(after: Date(),
+                                         latitude: location.latitude,
+                                         longitude: location.longitude)
+        let changed: Bool
+        switch (next, nextTransition) {
+        case (nil, nil): changed = false
+        case let (a?, b?): changed = abs(a.timeIntervalSince(b)) > 90
+        default: changed = true
+        }
+        guard changed else { return }
+        nextTransition = next
+        if let next {
+            let e = Solar.elevation(date: next.addingTimeInterval(120),
+                                    latitude: location.latitude,
+                                    longitude: location.longitude)
+            nextPhase = e > 6 ? .day : (e < -6 ? .night : .twilight)
+        }
+    }
 
     /// The day's shape: civil twilight (+6°…−6°) carries the main transition,
     /// and above it a gentle daylight slope keeps the screen drifting with the

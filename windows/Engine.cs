@@ -18,6 +18,9 @@ public sealed class Engine
     /// <summary>1 = full day, 0 = full night.</summary>
     public double NightBlend { get; private set; } = 1;
     public DateTime? PausedUntilUtc { get; private set; }
+    /// <summary>When the day phase next flips (null in polar day/night), and to what.</summary>
+    public DateTime? NextTransitionUtc { get; private set; }
+    public DayPhase NextPhase { get; private set; } = DayPhase.Night;
     public bool FlickerSuspended { get; private set; }
     public bool FlickerFreeAvailable { get; }
 
@@ -136,6 +139,7 @@ public sealed class Engine
 
         double elevation = Solar.Elevation(DateTime.UtcNow, Location.Latitude, Location.Longitude);
         Phase = elevation > 6 ? DayPhase.Day : elevation < -6 ? DayPhase.Night : DayPhase.Twilight;
+        UpdateForecast();
 
         if (!Settings.Enabled || PausedUntilUtc != null)
         {
@@ -182,6 +186,29 @@ public sealed class Engine
         _lastEffectiveDim = EffectiveDim();
         _gamma.Apply(AppliedKelvin, _lastEffectiveDim);
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// The scan restarts from "now" every tick, so the crossing minute can
+    /// jitter by a step; only adopt moves larger than that so Changed
+    /// subscribers stay quiet at steady state.
+    /// </summary>
+    private void UpdateForecast()
+    {
+        DateTime? next = Solar.NextPhaseChangeUtc(DateTime.UtcNow, Location.Latitude, Location.Longitude);
+        bool changed = (next, NextTransitionUtc) switch
+        {
+            (null, null) => false,
+            (DateTime a, DateTime b) => Math.Abs((a - b).TotalSeconds) > 90,
+            _ => true,
+        };
+        if (!changed) return;
+        NextTransitionUtc = next;
+        if (next is DateTime crossing)
+        {
+            double e = Solar.Elevation(crossing.AddMinutes(2), Location.Latitude, Location.Longitude);
+            NextPhase = e > 6 ? DayPhase.Day : e < -6 ? DayPhase.Night : DayPhase.Twilight;
+        }
     }
 
     /// <summary>

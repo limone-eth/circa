@@ -9,41 +9,54 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            header
+            statusCard
             updateBanner
-            slidersCard
-            togglesCard
-            advancedCard
+            flickerCard
             pauseSection
+            advancedCard
             footer
         }
         .padding(14)
         .frame(width: 312)
     }
 
-    // MARK: Header
+    // MARK: Status card — what the autopilot is doing now, and next
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            PhaseOrb(phase: model.phase, active: model.isActive)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.phaseTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .contentTransition(.interpolate)
-                Text(model.statusLine)
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .contentTransition(.numericText())
+    private var statusCard: some View {
+        Card {
+            HStack(spacing: 12) {
+                PhaseOrb(phase: model.phase, active: model.isActive)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(model.phaseTitle)
+                        .font(.system(.headline, design: .rounded))
+                        .contentTransition(.interpolate)
+                    Text(model.statusLine)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
+                }
+                .animation(.spring(duration: 0.35, bounce: 0), value: model.statusLine)
+                Spacer(minLength: 0)
+                Toggle("", isOn: $model.enabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
             }
-            .animation(.spring(duration: 0.35, bounce: 0), value: model.statusLine)
-            Spacer(minLength: 0)
-            Toggle("", isOn: $model.enabled)
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.small)
+
+            if model.isActive {
+                SunTrack(blend: model.nightBlend)
+
+                if let line = model.forecastLine {
+                    Text(line)
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(.tertiary)
+                        .contentTransition(.numericText())
+                }
+            }
         }
-        .padding(.horizontal, 2)
+        .animation(.spring(duration: 0.3, bounce: 0), value: model.isActive)
     }
 
     // MARK: Update banner
@@ -89,59 +102,24 @@ struct ContentView: View {
         }
     }
 
-    // MARK: Sliders
+    // MARK: Flicker-free (compact: the explainer lives in a tooltip)
 
-    private var slidersCard: some View {
-        Card {
-            SliderRow(title: "Day", systemImage: "sun.max",
-                      value: $model.dayTemp, range: 4800...6500, step: 50,
-                      tint: .cyan) { "\(Int($0)) K" }
-            SliderRow(title: "Night", systemImage: "moon",
-                      value: $model.nightTemp, range: 1900...4500, step: 50,
-                      tint: .orange) { "\(Int($0)) K" }
-            SliderRow(title: "Night dim", systemImage: "circle.lefthalf.filled",
-                      value: $model.dimPercent, range: 0...70, step: 1,
-                      tint: Color.indigo) { $0 < 1 ? "Off" : "\(Int($0)) %" }
-
-            if model.isCustomized {
-                HStack {
-                    Spacer()
-                    Button {
-                        withAnimation(.spring(duration: 0.3, bounce: 0)) {
-                            model.resetToRecommended()
-                        }
-                    } label: {
-                        Label("Reset to ideal", systemImage: "arrow.counterclockwise")
-                            .font(.caption2)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help("Back to the recommended day/night curve for this time of day")
-                }
-                .transition(.opacity)
-            }
-        }
-        .animation(.spring(duration: 0.25, bounce: 0), value: model.isCustomized)
-    }
-
-    // MARK: Toggles
-
-    private var togglesCard: some View {
+    private var flickerCard: some View {
         Card {
             Toggle(isOn: $model.flickerFree) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Flicker-free dimming")
-                    Text(model.flickerFreeAvailable
-                         ? "Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM). Use the slider below for brightness; the keys are overridden."
-                         : "Not available for this display.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if !model.flickerFreeAvailable {
+                        Text("Not available for this display.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
             .toggleStyle(.switch)
             .controlSize(.small)
             .disabled(!model.flickerFreeAvailable)
+            .help("Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM). Use the slider for brightness; the keys are overridden.")
 
             if model.flickerFree && model.flickerFreeAvailable {
                 SliderRow(title: "Brightness", systemImage: "sun.min",
@@ -179,6 +157,44 @@ struct ContentView: View {
             .buttonStyle(.plain)
 
             if showAdvanced {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Circa follows the sun on its own; these set the endpoints it moves between.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    SliderRow(title: "Day", systemImage: "sun.max",
+                              value: $model.dayTemp, range: 4800...6500, step: 50,
+                              tint: .cyan) { "\(Int($0)) K" }
+                    SliderRow(title: "Night", systemImage: "moon",
+                              value: $model.nightTemp, range: 1900...4500, step: 50,
+                              tint: .orange) { "\(Int($0)) K" }
+                    SliderRow(title: "Night dim", systemImage: "circle.lefthalf.filled",
+                              value: $model.dimPercent, range: 0...70, step: 1,
+                              tint: Color.indigo) { $0 < 1 ? "Off" : "\(Int($0)) %" }
+
+                    if model.isCustomized {
+                        HStack {
+                            Spacer()
+                            Button {
+                                withAnimation(.spring(duration: 0.3, bounce: 0)) {
+                                    model.resetToRecommended()
+                                }
+                            } label: {
+                                Label("Reset to ideal", systemImage: "arrow.counterclockwise")
+                                    .font(.caption2)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
+                            .help("Back to the recommended day/night curve for this time of day")
+                        }
+                        .transition(.opacity)
+                    }
+                }
+                .animation(.spring(duration: 0.25, bounce: 0), value: model.isCustomized)
+
                 Divider()
 
                 Toggle(isOn: $model.flickerOnlyOnPower) {
@@ -296,6 +312,43 @@ struct ContentView: View {
                 .keyboardShortcut("q")
         }
         .padding(.horizontal, 2)
+    }
+}
+
+// MARK: - Sun track (where today is, between sun and moon)
+
+/// Slim capsule with a sliding dot. The dot's position maps the current solar
+/// elevation through the same blend curve the engine applies, so the dot and
+/// the screen's warmth always agree (1 = full day → left, 0 = night → right).
+struct SunTrack: View {
+    let blend: Double
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "sun.max.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(.yellow.opacity(0.75))
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [.cyan.opacity(0.55), .orange.opacity(0.55), .indigo.opacity(0.65)],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(height: 4)
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 9, height: 9)
+                        .shadow(color: .black.opacity(0.35), radius: 1.5, y: 0.5)
+                        .offset(x: (1 - blend) * (geo.size.width - 9))
+                }
+                .frame(maxHeight: .infinity, alignment: .center)
+            }
+            .frame(height: 10)
+            Image(systemName: "moon.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(.indigo.opacity(0.9))
+        }
+        .animation(.spring(duration: 0.45, bounce: 0), value: blend)
     }
 }
 
@@ -443,4 +496,27 @@ extension CircaModel {
     var locationLine: String {
         placeName.isEmpty ? "Locating…" : "\(placeName) · \(locationSource)"
     }
+
+    /// What the autopilot does next. Nil when off, paused (the pause card
+    /// already says when it resumes), or in polar day/night with no crossing.
+    var forecastLine: String? {
+        guard isActive, let t = nextTransition else { return nil }
+        let when = Self.timeFormatter.string(from: t)
+        let dim = dimPercent >= 1 ? " · dim \(Int(dimPercent)) %" : ""
+        switch (phase, nextPhase) {
+        case (.day, _):
+            return "Tonight: \(Int(nightTemp)) K\(dim) · from ~\(when)"
+        case (.twilight, .night):
+            return "Settling to \(Int(nightTemp)) K\(dim) by ~\(when)"
+        default:
+            return "Morning: \(Int(dayTemp)) K from ~\(when)"
+        }
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short  // respects the system 12/24-hour setting
+        f.dateStyle = .none
+        return f
+    }()
 }

@@ -49,6 +49,37 @@ public static class Solar
         return utcStart.AddHours(8); // polar fallback
     }
 
+    /// <summary>
+    /// First moment the engine's day phase (±6° twilight thresholds) changes:
+    /// 10-minute scan up to 26 h ahead, bisected to the minute. Null when the
+    /// sun never crosses a threshold (polar day/night).
+    /// </summary>
+    public static DateTime? NextPhaseChangeUtc(DateTime utcStart, double latitude, double longitude)
+    {
+        int Band(DateTime t)
+        {
+            double e = Elevation(t, latitude, longitude);
+            return e > 6 ? 2 : e < -6 ? 0 : 1;
+        }
+        int startBand = Band(utcStart);
+        DateTime lo = utcStart;
+        for (int i = 0; i < 26 * 6; i++)
+        {
+            DateTime hi = lo.AddMinutes(10);
+            if (Band(hi) != startBand)
+            {
+                while ((hi - lo).TotalSeconds > 60)
+                {
+                    DateTime mid = lo.AddSeconds((hi - lo).TotalSeconds / 2);
+                    if (Band(mid) != startBand) hi = mid; else lo = mid;
+                }
+                return hi;
+            }
+            lo = hi;
+        }
+        return null;
+    }
+
     private static double Deg2Rad(double v) => v * Math.PI / 180.0;
     private static double Rad2Deg(double v) => v * 180.0 / Math.PI;
 }

@@ -1,12 +1,14 @@
+using System.Drawing.Drawing2D;
 using Microsoft.Win32;
 
 namespace Circa;
 
 /// <summary>
-/// The tray popover: a small dark warm panel echoing the macOS popover's
-/// vocabulary (status line, Day/Night/Night-dim sliders, flicker-free with
-/// brightness + only-on-power, launch at login, pause, reset).
-/// Function-first WinForms; the design-polish pass happens on real hardware.
+/// The tray popover, autopilot-first: a status card (phase, current output,
+/// sun track, what happens next), the flicker-free control, pause row — and
+/// the tuning levers tucked into a collapsible Advanced section. WinForms has
+/// no disclosure control, so Advanced (and the update banner) are authored
+/// below the visible fold and revealed by growing ClientSize.
 /// </summary>
 public sealed class PopoverForm : Form
 {
@@ -17,37 +19,38 @@ public sealed class PopoverForm : Form
     private static readonly Color Accent = Color.FromArgb(235, 172, 92);
 
     private readonly Engine _engine;
+    private readonly ToolTip _tips = new();
 
     private readonly Label _status = new();
-    private readonly Label _place = new();
+    private readonly Label _now = new();
+    private readonly Panel _track = new();
+    private readonly Label _forecast = new();
     private readonly CheckBox _enabled = new();
+    private readonly CheckBox _flicker = new();
+    private readonly TrackBar _flickerBrightness = new();
+    private readonly Label _flickerVal = new();
+    private readonly Button _pauseHour = new();
+    private readonly Button _pauseSunrise = new();
+    private readonly Button _resume = new();
+    private readonly LinkLabel _advToggle = new();
+    private readonly Label _place = new();
+
+    // Advanced region (below the fold until expanded).
     private readonly TrackBar _day = new();
     private readonly Label _dayVal = new();
     private readonly TrackBar _night = new();
     private readonly Label _nightVal = new();
     private readonly TrackBar _dim = new();
     private readonly Label _dimVal = new();
-    private readonly CheckBox _flicker = new();
-    private readonly TrackBar _flickerBrightness = new();
-    private readonly Label _flickerVal = new();
+    private readonly LinkLabel _reset = new();
     private readonly CheckBox _onlyOnPower = new();
     private readonly CheckBox _launchAtLogin = new();
     private readonly CheckBox _autoUpdate = new();
+
     private readonly Button _update = new();
     private bool _updateRunning;
-    private readonly Button _pauseHour = new();
-    private readonly Button _pauseSunrise = new();
-    private readonly Button _resume = new();
-    private readonly LinkLabel _reset = new();
-
+    private bool _advancedOpen;
     private bool _updatingUi;
-
-    /// <summary>
-    /// Authored (96-DPI) client height. The update banner sits exactly at this
-    /// edge — outside the visible area — until a new release is known, then
-    /// SyncFromEngine grows the form to reveal it.
-    /// </summary>
-    private const int BaseHeight = 550;
 
     public PopoverForm(Engine engine)
     {
@@ -76,25 +79,26 @@ public sealed class PopoverForm : Form
             }
         };
 
-        int y = 14;
-        y = AddHeader(y);
-        y = AddSlider("Day", _day, _dayVal, 4800, 6500, y);
-        y = AddSlider("Night", _night, _nightVal, 1900, 4500, y);
-        y = AddSlider("Night dim", _dim, _dimVal, 0, 70, y);
+        int y = AddStatusCard(14);
         y = AddFlickerSection(y);
-        y = AddToggles(y);
         y = AddPauseRow(y);
+        y = AddAdvancedToggle(y);
         AddFooter(y);
-        AddUpdateBanner(BaseHeight);
+        y = AddAdvancedRegion(y + 34);
+        AddUpdateBanner(y);
 
         // Every bound above is authored in 96-DPI pixels; on a scaled display
         // (125–200%, i.e. most laptops) the whole layout must scale with it.
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoScaleDimensions = new SizeF(96f, 96f);
-        ClientSize = new Size(320, BaseHeight);
+        ClientSize = new Size(320, 300); // height is owned by ApplyLayout
 
         ResumeLayout(false);
         PerformLayout();
+
+        // Force handle creation so DPI autoscaling runs now; ApplyLayout (via
+        // SyncFromEngine below) then computes heights in device units.
+        _ = Handle;
 
         _engine.Changed += () => { if (IsHandleCreated) BeginInvoke(SyncFromEngine); };
         SyncFromEngine();
@@ -102,9 +106,9 @@ public sealed class PopoverForm : Form
 
     // ------------------------------------------------------------ layout
 
-    private int AddHeader(int y)
+    private int AddStatusCard(int y)
     {
-        _status.SetBounds(16, y, 240, 22);
+        _status.SetBounds(16, y, 236, 24);
         _status.ForeColor = Ink;
         _status.Font = new Font("Segoe UI Semibold", 10.5f);
         Controls.Add(_status);
@@ -115,11 +119,209 @@ public sealed class PopoverForm : Form
         _enabled.CheckedChanged += (_, _) => { if (!_updatingUi) _engine.SetEnabled(_enabled.Checked); };
         Controls.Add(_enabled);
 
-        _place.SetBounds(16, y + 24, 288, 18);
+        _now.SetBounds(16, y + 26, 288, 16);
+        _now.ForeColor = Muted;
+        _now.Font = new Font("Segoe UI", 8.5f);
+        Controls.Add(_now);
+
+        _track.SetBounds(16, y + 46, 288, 16);
+        _track.BackColor = Bg;
+        _track.Paint += PaintTrack;
+        Controls.Add(_track);
+
+        _forecast.SetBounds(16, y + 66, 288, 16);
+        _forecast.ForeColor = Muted;
+        _forecast.Font = new Font("Segoe UI", 8.5f);
+        Controls.Add(_forecast);
+        return y + 94;
+    }
+
+    /// <summary>
+    /// Slim gradient bar with a sliding dot. The dot maps the engine's own
+    /// day/night blend (1 = full day → sun end), so it always agrees with
+    /// the screen's warmth.
+    /// </summary>
+    private void PaintTrack(object? sender, PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        Rectangle r = _track.ClientRectangle;
+
+        using var glyphFont = new Font("Segoe UI Symbol", 8f);
+        Size sun = TextRenderer.MeasureText("☀", glyphFont);
+        Size moon = TextRenderer.MeasureText("☾", glyphFont);
+        TextRenderer.DrawText(g, "☀", glyphFont,
+            new Point(r.Left, r.Top + (r.Height - sun.Height) / 2), Color.FromArgb(222, 186, 110));
+        TextRenderer.DrawText(g, "☾", glyphFont,
+            new Point(r.Right - moon.Width, r.Top + (r.Height - moon.Height) / 2), Color.FromArgb(148, 140, 205));
+
+        int barH = Math.Max(3, r.Height / 4);
+        var bar = Rectangle.FromLTRB(r.Left + sun.Width + 2, r.Top + (r.Height - barH) / 2,
+                                     r.Right - moon.Width - 2, r.Top + (r.Height - barH) / 2 + barH);
+        if (bar.Width <= 12) return;
+
+        using var gradient = new LinearGradientBrush(bar, Color.Empty, Color.Empty, LinearGradientMode.Horizontal)
+        {
+            InterpolationColors = new ColorBlend
+            {
+                Colors = new[]
+                {
+                    Color.FromArgb(96, 156, 190),
+                    Color.FromArgb(212, 140, 70),
+                    Color.FromArgb(92, 82, 152),
+                },
+                Positions = new[] { 0f, 0.55f, 1f },
+            },
+        };
+        g.FillRectangle(gradient, bar);
+
+        int dot = Math.Max(8, r.Height / 2);
+        float x = bar.Left + (float)(1 - _engine.NightBlend) * (bar.Width - dot);
+        using var dotBrush = new SolidBrush(Ink);
+        g.FillEllipse(dotBrush, x, r.Top + (r.Height - dot) / 2f, dot, dot);
+    }
+
+    private int AddFlickerSection(int y)
+    {
+        _flicker.Text = "Flicker-free dimming (PWM safe)";
+        _flicker.SetBounds(16, y, 290, 22);
+        _flicker.ForeColor = Ink;
+        _flicker.Enabled = _engine.FlickerFreeAvailable;
+        _flicker.CheckedChanged += (_, _) => { if (!_updatingUi) _engine.SetFlickerFree(_flicker.Checked); };
+        _tips.SetToolTip(_flicker, _engine.FlickerFreeAvailable
+            ? "Pins the backlight at 100% and dims in software, so the LED panel never strobes (PWM). " +
+              "Use the brightness slider below; the keys are overridden."
+            : "No controllable backlight found on this machine.");
+        Controls.Add(_flicker);
+
+        var bLabel = new Label { Text = "Brightness", ForeColor = Muted };
+        bLabel.SetBounds(32, y + 26, 90, 18);
+        Controls.Add(bLabel);
+
+        _flickerVal.SetBounds(230, y + 26, 76, 18);
+        _flickerVal.TextAlign = ContentAlignment.TopRight;
+        _flickerVal.ForeColor = Ink;
+        Controls.Add(_flickerVal);
+
+        _flickerBrightness.SetBounds(26, y + 44, 284, 30);
+        _flickerBrightness.Minimum = 20;
+        _flickerBrightness.Maximum = 100;
+        _flickerBrightness.TickStyle = TickStyle.None;
+        _flickerBrightness.BackColor = Bg;
+        _flickerBrightness.ValueChanged += (_, _) =>
+        {
+            if (!_updatingUi) _engine.SetFlickerBrightness(_flickerBrightness.Value / 100.0);
+        };
+        Controls.Add(_flickerBrightness);
+        return y + 82;
+    }
+
+    private int AddPauseRow(int y)
+    {
+        StyleButton(_pauseHour, "Pause 1 h");
+        _pauseHour.SetBounds(16, y, 90, 28);
+        _pauseHour.Click += (_, _) => _engine.Pause(TimeSpan.FromHours(1));
+        Controls.Add(_pauseHour);
+
+        StyleButton(_pauseSunrise, "Until sunrise");
+        _pauseSunrise.SetBounds(112, y, 100, 28);
+        _pauseSunrise.Click += (_, _) => _engine.PauseUntilSunrise();
+        Controls.Add(_pauseSunrise);
+
+        StyleButton(_resume, "Resume");
+        _resume.SetBounds(218, y, 88, 28);
+        _resume.Click += (_, _) => _engine.Resume();
+        Controls.Add(_resume);
+        return y + 38;
+    }
+
+    private int AddAdvancedToggle(int y)
+    {
+        _advToggle.Text = "Advanced  ▸";
+        _advToggle.LinkColor = Muted;
+        _advToggle.ActiveLinkColor = Accent;
+        _advToggle.LinkBehavior = LinkBehavior.HoverUnderline;
+        _advToggle.SetBounds(16, y, 140, 18);
+        _advToggle.LinkClicked += (_, _) =>
+        {
+            _advancedOpen = !_advancedOpen;
+            _advToggle.Text = _advancedOpen ? "Advanced  ▾" : "Advanced  ▸";
+            ApplyLayout();
+        };
+        Controls.Add(_advToggle);
+        return y + 26;
+    }
+
+    private void AddFooter(int y)
+    {
+        _place.SetBounds(16, y + 4, 230, 18);
         _place.ForeColor = Muted;
-        _place.Font = new Font("Segoe UI", 8.5f);
+        _place.Font = new Font("Segoe UI", 8f);
         Controls.Add(_place);
-        return y + 52;
+
+        var quit = new LinkLabel
+        {
+            Text = "Quit",
+            LinkColor = Muted,
+            ActiveLinkColor = Accent,
+            LinkBehavior = LinkBehavior.HoverUnderline,
+        };
+        quit.SetBounds(266, y + 4, 40, 18);
+        quit.LinkClicked += (_, _) => Application.Exit();
+        Controls.Add(quit);
+    }
+
+    private int AddAdvancedRegion(int y)
+    {
+        var caption = new Label
+        {
+            Text = "Circa follows the sun on its own; these set the endpoints it moves between.",
+            ForeColor = Muted,
+        };
+        caption.Font = new Font("Segoe UI", 8f);
+        caption.SetBounds(16, y, 290, 28);
+        Controls.Add(caption);
+
+        y = AddSlider("Day", _day, _dayVal, 4800, 6500, y + 32);
+        y = AddSlider("Night", _night, _nightVal, 1900, 4500, y);
+        y = AddSlider("Night dim", _dim, _dimVal, 0, 70, y);
+
+        _reset.Text = "Reset to ideal";
+        _reset.LinkColor = Muted;
+        _reset.ActiveLinkColor = Accent;
+        _reset.LinkBehavior = LinkBehavior.HoverUnderline;
+        _reset.SetBounds(16, y + 2, 150, 18);
+        _reset.LinkClicked += (_, _) => _engine.ResetToRecommended();
+        Controls.Add(_reset);
+        y += 28;
+
+        _onlyOnPower.Text = "Flicker-free only on power adapter";
+        _onlyOnPower.SetBounds(16, y, 290, 22);
+        _onlyOnPower.ForeColor = Ink;
+        _onlyOnPower.CheckedChanged += (_, _) => { if (!_updatingUi) _engine.SetFlickerOnlyOnPower(_onlyOnPower.Checked); };
+        _tips.SetToolTip(_onlyOnPower,
+            "The pinned backlight draws noticeably more energy, so on battery Circa hands brightness back to Windows.");
+        Controls.Add(_onlyOnPower);
+        y += 30;
+
+        _launchAtLogin.Text = "Launch at login";
+        _launchAtLogin.SetBounds(16, y, 290, 22);
+        _launchAtLogin.ForeColor = Ink;
+        _launchAtLogin.CheckedChanged += (_, _) => { if (!_updatingUi) SetLaunchAtLogin(_launchAtLogin.Checked); };
+        Controls.Add(_launchAtLogin);
+        y += 30;
+
+        _autoUpdate.Text = "Update automatically";
+        _autoUpdate.SetBounds(16, y, 290, 22);
+        _autoUpdate.ForeColor = Ink;
+        _autoUpdate.CheckedChanged += (_, _) =>
+        {
+            if (_updatingUi) return;
+            _engine.Settings.AutoUpdate = _autoUpdate.Checked;
+            _engine.Settings.Save();
+        };
+        Controls.Add(_autoUpdate);
+        return y + 32;
     }
 
     private int AddSlider(string title, TrackBar bar, Label value, int min, int max, int y)
@@ -148,114 +350,6 @@ public sealed class PopoverForm : Form
         if (bar == _day) _engine.SetDayTemp(bar.Value);
         else if (bar == _night) _engine.SetNightTemp(bar.Value);
         else if (bar == _dim) _engine.SetDimPercent(bar.Value);
-        else if (bar == _flickerBrightness) _engine.SetFlickerBrightness(bar.Value / 100.0);
-    }
-
-    private int AddFlickerSection(int y)
-    {
-        _flicker.Text = "Flicker-free dimming (PWM safe)";
-        _flicker.SetBounds(16, y, 290, 22);
-        _flicker.ForeColor = Ink;
-        _flicker.Enabled = _engine.FlickerFreeAvailable;
-        _flicker.CheckedChanged += (_, _) => { if (!_updatingUi) _engine.SetFlickerFree(_flicker.Checked); };
-        Controls.Add(_flicker);
-
-        var hint = new Label
-        {
-            Text = _engine.FlickerFreeAvailable
-                ? "Pins the backlight at 100% and dims in software. Use the slider below; brightness keys are overridden."
-                : "No controllable backlight found on this machine.",
-            ForeColor = Muted,
-        };
-        hint.Font = new Font("Segoe UI", 8f);
-        hint.SetBounds(32, y + 22, 276, 30);
-        Controls.Add(hint);
-
-        var bLabel = new Label { Text = "Brightness", ForeColor = Muted };
-        bLabel.SetBounds(32, y + 56, 80, 18);
-        Controls.Add(bLabel);
-
-        _flickerVal.SetBounds(230, y + 56, 76, 18);
-        _flickerVal.TextAlign = ContentAlignment.TopRight;
-        _flickerVal.ForeColor = Ink;
-        Controls.Add(_flickerVal);
-
-        _flickerBrightness.SetBounds(26, y + 74, 284, 30);
-        _flickerBrightness.Minimum = 20;
-        _flickerBrightness.Maximum = 100;
-        _flickerBrightness.TickStyle = TickStyle.None;
-        _flickerBrightness.BackColor = Bg;
-        _flickerBrightness.ValueChanged += (_, _) => { if (!_updatingUi) OnSliderChanged(_flickerBrightness); };
-        Controls.Add(_flickerBrightness);
-
-        _onlyOnPower.Text = "Only on power adapter (saves battery)";
-        _onlyOnPower.SetBounds(32, y + 106, 276, 22);
-        _onlyOnPower.ForeColor = Ink;
-        _onlyOnPower.CheckedChanged += (_, _) => { if (!_updatingUi) _engine.SetFlickerOnlyOnPower(_onlyOnPower.Checked); };
-        Controls.Add(_onlyOnPower);
-        return y + 136;
-    }
-
-    private int AddToggles(int y)
-    {
-        _launchAtLogin.Text = "Launch at login";
-        _launchAtLogin.SetBounds(16, y, 290, 22);
-        _launchAtLogin.ForeColor = Ink;
-        _launchAtLogin.CheckedChanged += (_, _) => { if (!_updatingUi) SetLaunchAtLogin(_launchAtLogin.Checked); };
-        Controls.Add(_launchAtLogin);
-
-        _autoUpdate.Text = "Update automatically";
-        _autoUpdate.SetBounds(16, y + 30, 290, 22);
-        _autoUpdate.ForeColor = Ink;
-        _autoUpdate.CheckedChanged += (_, _) =>
-        {
-            if (_updatingUi) return;
-            _engine.Settings.AutoUpdate = _autoUpdate.Checked;
-            _engine.Settings.Save();
-        };
-        Controls.Add(_autoUpdate);
-        return y + 60;
-    }
-
-    private int AddPauseRow(int y)
-    {
-        StyleButton(_pauseHour, "Pause 1 h");
-        _pauseHour.SetBounds(16, y, 90, 28);
-        _pauseHour.Click += (_, _) => _engine.Pause(TimeSpan.FromHours(1));
-        Controls.Add(_pauseHour);
-
-        StyleButton(_pauseSunrise, "Until sunrise");
-        _pauseSunrise.SetBounds(112, y, 100, 28);
-        _pauseSunrise.Click += (_, _) => _engine.PauseUntilSunrise();
-        Controls.Add(_pauseSunrise);
-
-        StyleButton(_resume, "Resume");
-        _resume.SetBounds(218, y, 88, 28);
-        _resume.Click += (_, _) => _engine.Resume();
-        Controls.Add(_resume);
-        return y + 38;
-    }
-
-    private void AddFooter(int y)
-    {
-        _reset.Text = "Reset to ideal";
-        _reset.LinkColor = Muted;
-        _reset.ActiveLinkColor = Accent;
-        _reset.LinkBehavior = LinkBehavior.HoverUnderline;
-        _reset.SetBounds(16, y + 4, 120, 18);
-        _reset.LinkClicked += (_, _) => _engine.ResetToRecommended();
-        Controls.Add(_reset);
-
-        var quit = new LinkLabel
-        {
-            Text = "Quit",
-            LinkColor = Muted,
-            ActiveLinkColor = Accent,
-            LinkBehavior = LinkBehavior.HoverUnderline,
-        };
-        quit.SetBounds(266, y + 4, 40, 18);
-        quit.LinkClicked += (_, _) => Application.Exit();
-        Controls.Add(quit);
     }
 
     private void AddUpdateBanner(int y)
@@ -266,6 +360,7 @@ public sealed class PopoverForm : Form
         _update.BackColor = Color.FromArgb(54, 40, 26);
         _update.ForeColor = Accent;
         _update.Font = new Font("Segoe UI Semibold", 9.5f);
+        _update.Visible = false;
         _update.Click += async (_, _) => await RunUpdateAsync();
         Controls.Add(_update);
     }
@@ -297,13 +392,41 @@ public sealed class PopoverForm : Form
 
     // -------------------------------------------------------------- state
 
+    /// <summary>
+    /// Size the form for the current fold (Advanced open/closed) and pin the
+    /// update banner to the bottom edge. Bounds are consistent within a call
+    /// — authored units before DPI scaling, device units after — so the math
+    /// holds at any scale.
+    /// </summary>
+    private void ApplyLayout()
+    {
+        int pad = LogicalToDeviceUnits(12);
+        int fold = (_advancedOpen ? _autoUpdate.Bottom : _place.Bottom) + pad;
+        bool banner = Updater.AvailableTag != null;
+        if (banner) _update.SetBounds(0, fold, ClientSize.Width, _update.Height);
+        _update.Visible = banner;
+        int height = fold + (banner ? _update.Height : 0);
+        if (ClientSize.Height != height) ClientSize = new Size(ClientSize.Width, height);
+        if (Visible) PositionAboveTray();
+    }
+
+    public void PositionAboveTray()
+    {
+        var screen = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1200, 800);
+        Location = new Point(
+            Math.Max(0, screen.Right - Width - 12),
+            Math.Max(0, screen.Bottom - Height - 12));
+    }
+
     public void SyncFromEngine()
     {
         _updatingUi = true;
         try
         {
             var s = _engine.Settings;
-            string phase = !s.Enabled ? "Off"
+            bool active = s.Enabled && _engine.PausedUntilUtc == null;
+
+            _status.Text = !s.Enabled ? "Off"
                 : _engine.PausedUntilUtc != null ? "Paused"
                 : _engine.Phase switch
                 {
@@ -311,12 +434,10 @@ public sealed class PopoverForm : Form
                     DayPhase.Twilight => "Golden hour",
                     _ => "Night",
                 };
-            string detail = s.Enabled && _engine.PausedUntilUtc == null
-                ? $" · {Math.Round(_engine.AppliedKelvin / 50) * 50:0} K"
-                : "";
-            string suspended = _engine.FlickerSuspended ? " · flicker-free paused (battery)" : "";
-            _status.Text = phase + detail + suspended;
-            _place.Text = $"{_engine.Location.PlaceName} · {_engine.Location.SourceName}";
+            _now.Text = NowText(s, active);
+            _forecast.Text = ForecastText(s);
+            _track.Visible = active;
+            _track.Invalidate();
 
             _enabled.Checked = s.Enabled;
             _day.Value = (int)Math.Clamp(s.DayTemp, _day.Minimum, _day.Maximum);
@@ -338,20 +459,41 @@ public sealed class PopoverForm : Form
             _resume.Enabled = _engine.PausedUntilUtc != null;
             _reset.Visible = _engine.IsCustomized;
 
-            if (Updater.AvailableTag is string tag)
-            {
-                if (!_updateRunning)
-                    _update.Text = $"Update to Circa {tag.TrimStart('v')} — restart";
-                // Bounds are already DPI-scaled at runtime, so compare and
-                // grow in device pixels.
-                if (ClientSize.Height < _update.Bottom)
-                    ClientSize = new Size(ClientSize.Width, _update.Bottom);
-            }
+            if (Updater.AvailableTag is string tag && !_updateRunning)
+                _update.Text = $"Update to Circa {tag.TrimStart('v')} — restart";
+            ApplyLayout();
         }
         finally
         {
             _updatingUi = false;
         }
+    }
+
+    private string NowText(Settings s, bool active)
+    {
+        if (!active) return "Screen at system default";
+        var parts = new List<string> { $"{Math.Round(_engine.AppliedKelvin / 50) * 50:0} K" };
+        double nightDim = s.DimPercent * (1 - _engine.NightBlend);
+        if (nightDim >= 1) parts.Add($"dimmed {nightDim:0} %");
+        if (s.FlickerFree) parts.Add(_engine.FlickerSuspended ? "flicker-free paused (battery)" : "flicker-free");
+        return string.Join(" · ", parts);
+    }
+
+    /// <summary>What the autopilot does next; times via the system clock format.</summary>
+    private string ForecastText(Settings s)
+    {
+        if (!s.Enabled) return "";
+        if (_engine.PausedUntilUtc is DateTime until)
+            return $"Resumes {until.ToLocalTime():t} — screen at system default";
+        if (_engine.NextTransitionUtc is not DateTime next) return "";
+        string when = next.ToLocalTime().ToString("t");
+        string dim = s.DimPercent >= 1 ? $" · dim {s.DimPercent:0} %" : "";
+        return (_engine.Phase, _engine.NextPhase) switch
+        {
+            (DayPhase.Day, _) => $"Tonight: {s.NightTemp:0} K{dim} · from ~{when}",
+            (DayPhase.Twilight, DayPhase.Night) => $"Settling to {s.NightTemp:0} K{dim} by ~{when}",
+            _ => $"Morning: {s.DayTemp:0} K from ~{when}",
+        };
     }
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
