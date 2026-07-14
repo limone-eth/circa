@@ -9,6 +9,7 @@ public sealed class TrayContext : ApplicationContext
     private readonly NotifyIcon _tray = new();
     private PopoverForm _popover; // recreated if it ever gets disposed
     private readonly System.Windows.Forms.Timer _timer = new();
+    private readonly System.Windows.Forms.Timer _updateTimer = new();
 
     public TrayContext()
     {
@@ -24,12 +25,25 @@ public sealed class TrayContext : ApplicationContext
         };
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open Circa", null, (_, _) => TogglePopover());
+        menu.Items.Add("Check for updates", null, async (_, _) =>
+        {
+            if (await Updater.CheckAsync() is null)
+                MessageBox.Show("Circa is up to date.", "Circa",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            else if (!_popover.Visible) TogglePopover();
+            else _popover.SyncFromEngine();
+        });
         menu.Items.Add("Quit Circa", null, (_, _) => Application.Exit());
         _tray.ContextMenuStrip = menu;
 
         _timer.Interval = 5000;
         _timer.Tick += (_, _) => _engine.Tick(slew: true);
         _timer.Start();
+
+        Updater.CleanupOldBinary();
+        _updateTimer.Interval = 15_000; // first check shortly after launch
+        _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync();
+        _updateTimer.Start();
 
         Application.ApplicationExit += (_, _) =>
         {
@@ -52,6 +66,15 @@ public sealed class TrayContext : ApplicationContext
                                    "Your screen will warm automatically at sunset.";
             _tray.ShowBalloonTip(6000);
         }
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        _updateTimer.Interval = (int)TimeSpan.FromHours(6).TotalMilliseconds;
+        if (await Updater.CheckAsync() == null) return;
+        if (_engine.Settings.AutoUpdate && await Updater.DownloadAndApplyAsync())
+            return; // the new instance is taking over
+        if (!_popover.IsDisposed && _popover.Visible) _popover.SyncFromEngine();
     }
 
     private void TogglePopover()

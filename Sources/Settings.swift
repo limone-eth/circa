@@ -47,6 +47,19 @@ enum Settings {
         set { d.set(newValue, forKey: "flickerComp") }
     }
 
+    /// Install new releases without asking. Off by default: the banner in the
+    /// popover is the consent path.
+    static var autoUpdate: Bool {
+        get { d.object(forKey: "autoUpdate") as? Bool ?? false }
+        set { d.set(newValue, forKey: "autoUpdate") }
+    }
+    /// A release tag whose downloaded build turned out not to be newer (stale
+    /// asset). Never retried automatically, so a bad release can't loop.
+    static var skippedUpdateTag: String? {
+        get { d.string(forKey: "skippedUpdateTag") }
+        set { d.set(newValue, forKey: "skippedUpdateTag") }
+    }
+
     static var cachedLatitude: Double? {
         get { d.object(forKey: "cachedLatitude") as? Double }
         set { d.set(newValue, forKey: "cachedLatitude") }

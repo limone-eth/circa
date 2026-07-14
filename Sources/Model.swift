@@ -84,6 +84,10 @@ final class CircaModel: NSObject, ObservableObject {
         }
     }
 
+    @Published var autoUpdate: Bool = Settings.autoUpdate {
+        didSet { Settings.autoUpdate = autoUpdate }
+    }
+
     // MARK: - Published live state (read-only for the UI)
 
     @Published private(set) var phase: DayPhase = .day

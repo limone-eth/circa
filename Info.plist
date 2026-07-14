@@ -14,8 +14,11 @@
 	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<!-- "dev" here on purpose: local builds never self-update (the Updater
+	     ignores non-numeric versions). The Release workflow stamps the real
+	     version from the git tag before building. -->
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>dev</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>

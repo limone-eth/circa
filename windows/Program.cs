@@ -1,10 +1,21 @@
+using System.Diagnostics;
+
 namespace Circa;
 
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
+        // Relaunched by the updater: let the old instance release the
+        // single-instance mutex before trying to take it.
+        int waitArg = Array.IndexOf(args, "--wait-pid");
+        if (waitArg >= 0 && waitArg + 1 < args.Length && int.TryParse(args[waitArg + 1], out int oldPid))
+        {
+            try { Process.GetProcessById(oldPid).WaitForExit(15000); }
+            catch { /* already gone */ }
+        }
+
         using var mutex = new Mutex(true, "CircaSingleInstance", out bool isFirst);
         if (!isFirst)
         {

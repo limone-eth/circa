@@ -1,0 +1,85 @@
+name: Release
+
+# Push a tag (git tag v1.0.3 && git push origin v1.0.3) and this builds both
+# apps with the version stamped from the tag, attaches them to a draft
+# release, and publishes it only once both assets are up — so the
+# /releases/latest download links and the in-app updaters never see a
+# half-assembled release.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  create-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" \
+            --draft --title "Circa ${GITHUB_REF_NAME#v}" --generate-notes \
+            || echo "release already exists"
+
+  windows:
+    needs: create-draft
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish (version from tag)
+        shell: bash
+        run: >
+          dotnet publish windows/Circa.Win.csproj
+          -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version="${GITHUB_REF_NAME#v}"
+          -o publish
+
+      - name: Zip
+        run: Compress-Archive -Path publish/Circa.exe -DestinationPath Circa-windows-x64.zip
+
+      - name: Attach to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" Circa-windows-x64.zip --clobber
+
+  mac:
+    needs: create-draft
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+
+      - name: Build (version from tag)
+        run: |
+          plutil -replace CFBundleShortVersionString -string "${GITHUB_REF_NAME#v}" Info.plist
+          plutil -replace CFBundleVersion -string "${GITHUB_REF_NAME#v}" Info.plist
+          ./build.sh
+          ditto -c -k --keepParent build.noindex/Circa.app Circa.zip
+
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" Circa.zip --clobber
+
+  publish:
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --draft=false

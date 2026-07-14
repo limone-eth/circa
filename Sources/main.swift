@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
 
         model.start()
+        Updater.shared.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

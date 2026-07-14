@@ -32,12 +32,22 @@ public sealed class PopoverForm : Form
     private readonly Label _flickerVal = new();
     private readonly CheckBox _onlyOnPower = new();
     private readonly CheckBox _launchAtLogin = new();
+    private readonly CheckBox _autoUpdate = new();
+    private readonly Button _update = new();
+    private bool _updateRunning;
     private readonly Button _pauseHour = new();
     private readonly Button _pauseSunrise = new();
     private readonly Button _resume = new();
     private readonly LinkLabel _reset = new();
 
     private bool _updatingUi;
+
+    /// <summary>
+    /// Authored (96-DPI) client height. The update banner sits exactly at this
+    /// edge — outside the visible area — until a new release is known, then
+    /// SyncFromEngine grows the form to reveal it.
+    /// </summary>
+    private const int BaseHeight = 550;
 
     public PopoverForm(Engine engine)
     {
@@ -75,12 +85,13 @@ public sealed class PopoverForm : Form
         y = AddToggles(y);
         y = AddPauseRow(y);
         AddFooter(y);
+        AddUpdateBanner(BaseHeight);
 
         // Every bound above is authored in 96-DPI pixels; on a scaled display
         // (125–200%, i.e. most laptops) the whole layout must scale with it.
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoScaleDimensions = new SizeF(96f, 96f);
-        ClientSize = new Size(320, 520);
+        ClientSize = new Size(320, BaseHeight);
 
         ResumeLayout(false);
         PerformLayout();
@@ -192,7 +203,18 @@ public sealed class PopoverForm : Form
         _launchAtLogin.ForeColor = Ink;
         _launchAtLogin.CheckedChanged += (_, _) => { if (!_updatingUi) SetLaunchAtLogin(_launchAtLogin.Checked); };
         Controls.Add(_launchAtLogin);
-        return y + 30;
+
+        _autoUpdate.Text = "Update automatically";
+        _autoUpdate.SetBounds(16, y + 30, 290, 22);
+        _autoUpdate.ForeColor = Ink;
+        _autoUpdate.CheckedChanged += (_, _) =>
+        {
+            if (_updatingUi) return;
+            _engine.Settings.AutoUpdate = _autoUpdate.Checked;
+            _engine.Settings.Save();
+        };
+        Controls.Add(_autoUpdate);
+        return y + 60;
     }
 
     private int AddPauseRow(int y)
@@ -234,6 +256,34 @@ public sealed class PopoverForm : Form
         quit.SetBounds(266, y + 4, 40, 18);
         quit.LinkClicked += (_, _) => Application.Exit();
         Controls.Add(quit);
+    }
+
+    private void AddUpdateBanner(int y)
+    {
+        _update.SetBounds(0, y, 320, 40);
+        _update.FlatStyle = FlatStyle.Flat;
+        _update.FlatAppearance.BorderSize = 0;
+        _update.BackColor = Color.FromArgb(54, 40, 26);
+        _update.ForeColor = Accent;
+        _update.Font = new Font("Segoe UI Semibold", 9.5f);
+        _update.Click += async (_, _) => await RunUpdateAsync();
+        Controls.Add(_update);
+    }
+
+    private async Task RunUpdateAsync()
+    {
+        if (_updateRunning) return;
+        _updateRunning = true;
+        _update.Enabled = false;
+        _update.Text = "Downloading update…";
+        bool ok = await Updater.DownloadAndApplyAsync();
+        if (!ok)
+        {
+            // On success the app is already restarting; only failure returns here.
+            _update.Text = "Update failed — click to retry";
+            _update.Enabled = true;
+            _updateRunning = false;
+        }
     }
 
     private static void StyleButton(Button b, string text)
@@ -284,8 +334,19 @@ public sealed class PopoverForm : Form
             _onlyOnPower.Enabled = s.FlickerFree;
 
             _launchAtLogin.Checked = GetLaunchAtLogin();
+            _autoUpdate.Checked = s.AutoUpdate;
             _resume.Enabled = _engine.PausedUntilUtc != null;
             _reset.Visible = _engine.IsCustomized;
+
+            if (Updater.AvailableTag is string tag)
+            {
+                if (!_updateRunning)
+                    _update.Text = $"Update to Circa {tag.TrimStart('v')} — restart";
+                // Bounds are already DPI-scaled at runtime, so compare and
+                // grow in device pixels.
+                if (ClientSize.Height < _update.Bottom)
+                    ClientSize = new Size(ClientSize.Width, _update.Bottom);
+            }
         }
         finally
         {

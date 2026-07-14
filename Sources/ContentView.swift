@@ -4,11 +4,13 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var model: CircaModel
+    @ObservedObject private var updater = Updater.shared
     @State private var showAdvanced = false
 
     var body: some View {
         VStack(spacing: 12) {
             header
+            updateBanner
             slidersCard
             togglesCard
             advancedCard
@@ -42,6 +44,49 @@ struct ContentView: View {
                 .controlSize(.small)
         }
         .padding(.horizontal, 2)
+    }
+
+    // MARK: Update banner
+
+    @ViewBuilder
+    private var updateBanner: some View {
+        if let tag = updater.availableTag {
+            Button {
+                updater.applyAvailableUpdate()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: updater.updating ? "arrow.triangle.2.circlepath" : "sparkles")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(updater.updating
+                             ? "Updating…"
+                             : "Circa \(tag.dropFirst()) is available")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Text(updater.updateFailed
+                             ? "Update failed — click to retry"
+                             : updater.updating
+                             ? "Restarts by itself when done"
+                             : "Click to update and restart")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(updater.updating)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(.orange.opacity(0.3), lineWidth: 0.5)
+            )
+            .transition(.opacity)
+        }
     }
 
     // MARK: Sliders
@@ -171,6 +216,20 @@ struct ContentView: View {
 
                 Toggle(isOn: $model.launchAtLogin) {
                     Text("Launch at login")
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+
+                Divider()
+
+                Toggle(isOn: $model.autoUpdate) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Update automatically")
+                        Text("When a new version is out, Circa installs it quietly and restarts. Off: a banner appears here instead.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .toggleStyle(.switch)
                 .controlSize(.small)

@@ -17,7 +17,10 @@
          handle mixed-DPI monitors. -->
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <Version>1.0.2</Version>
+    <!-- 0.0.0-dev on purpose: local builds never self-update (Updater ignores
+         major version 0). The Release workflow stamps the real version from
+         the git tag via -p:Version. -->
+    <Version>0.0.0-dev</Version>
     <Product>Circa</Product>
     <Description>Your screen, in sync with the sun.</Description>
   </PropertyGroup>

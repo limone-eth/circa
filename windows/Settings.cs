@@ -18,6 +18,11 @@ public sealed class Settings
     public bool FlickerOnlyOnPower { get; set; } = true;
     /// <summary>Software brightness multiplier while the backlight is pinned.</summary>
     public double FlickerComp { get; set; } = 1.0;
+    /// <summary>
+    /// Install new releases without asking. Off by default: the banner in the
+    /// popover is the consent path.
+    /// </summary>
+    public bool AutoUpdate { get; set; }
     public double? CachedLatitude { get; set; }
     public double? CachedLongitude { get; set; }
     public string? CachedPlace { get; set; }
